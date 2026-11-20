@@ -7,7 +7,9 @@ import {
   onBeforeUnmount,
   watch,
 } from 'vue';
+import { useRouter } from 'vue-router';
 import { useStore, useMapGetter } from 'dashboard/composables/store';
+import { useAccount } from 'dashboard/composables/useAccount';
 import { useI18n } from 'vue-i18n';
 import { useUISettings } from 'dashboard/composables/useUISettings';
 import { useAlert } from 'dashboard/composables';
@@ -44,6 +46,8 @@ const emit = defineEmits(['close']);
 
 const searchContacts = createContactSearcher();
 const store = useStore();
+const router = useRouter();
+const { accountId } = useAccount();
 const { t } = useI18n();
 
 const { fetchSignatureFlagFromUISettings } = useUISettings();
@@ -55,6 +59,7 @@ const targetInbox = ref(null);
 const isCreatingContact = ref(false);
 const isFetchingInboxes = ref(false);
 const isSearching = ref(false);
+const isOpeningPhoneConversation = ref(false);
 
 const formState = reactive({
   message: '',
@@ -223,50 +228,64 @@ const onPopoverHide = () => {
 const openPhoneContactInWhatsappComposer = async event => {
   // The sidebar composer handles phone-link requests. Contact-page composers
   // are already bound to a contact and must not create/open a second modal.
-  if (props.contactId) return;
+  if (props.contactId || isOpeningPhoneConversation.value) return;
+  isOpeningPhoneConversation.value = true;
 
   let { contact, phoneNumber } = event.detail || {};
-  if (!contact && phoneNumber) {
-    try {
+  try {
+    if (!contact && phoneNumber) {
       contact = await createNewContact(phoneNumber);
-    } catch (error) {
-      const message = parseAPIErrorResponse(error);
-      useAlert(
-        typeof message === 'string'
-          ? message
-          : t('COMPOSE_NEW_CONVERSATION.CONTACT_CREATE.ERROR_MESSAGE')
-      );
+    }
+    if (!contact?.id) return;
+
+    // Mirror the modal's "Via" options and choose the inbox labelled
+    // whatsapp, including custom API inboxes and native WhatsApp channels.
+    await store.dispatch('inboxes/get');
+    const contactableInboxes = await fetchContactableInboxes(contact.id);
+    const mergedContactableInboxes = mergeInboxDetails(
+      contactableInboxes,
+      inboxesList.value
+    );
+    const whatsappInbox = findWhatsAppInboxOption(
+      buildContactableInboxesList(mergedContactableInboxes)
+    );
+    if (!whatsappInbox) {
+      useAlert(t('CONTACT_PANEL.PHONE_CONTACT_NO_CONVERSATION'));
       return;
     }
-  }
-  if (!contact?.id) return;
 
-  clearFormState();
-  formState.message = '';
-  // Mirror the modal's own "Via" options and choose the inbox labelled
-  // whatsapp. This supports custom API inboxes named whatsapp as well as
-  // native WhatsApp and Twilio channels.
-  await store.dispatch('inboxes/get');
-  const contactableInboxes = await fetchContactableInboxes(contact.id);
-  const mergedContactableInboxes = mergeInboxDetails(
-    contactableInboxes,
-    inboxesList.value
-  );
-  const whatsappInbox = findWhatsAppInboxOption(
-    buildContactableInboxesList(mergedContactableInboxes)
-  );
-  if (!whatsappInbox) {
-    useAlert(t('CONTACT_PANEL.PHONE_CONTACT_NO_CONVERSATION'));
-    return;
-  }
+    // Create an empty conversation and open it directly. The agent can start
+    // typing in the reply box; no message is sent as part of this request.
+    const conversation = await store.dispatch(
+      'contactConversations/create',
+      {
+        params: {
+          contactId: Number(contact.id),
+          inboxId: whatsappInbox.id,
+          sourceId: whatsappInbox.sourceId,
+          assigneeId: currentUser.value?.id,
+        },
+        isFromWhatsApp: false,
+      }
+    );
 
-  selectedContact.value = {
-    ...contact,
-    contactInboxes: mergedContactableInboxes,
-  };
-  contacts.value = [];
-  targetInbox.value = whatsappInbox;
-  await popoverRef.value?.show();
+    await router.push({
+      name: 'inbox_conversation',
+      params: {
+        accountId: accountId.value,
+        conversation_id: conversation.id,
+      },
+    });
+  } catch (error) {
+    const message = parseAPIErrorResponse(error);
+    useAlert(
+      typeof message === 'string'
+        ? message
+        : t('COMPOSE_NEW_CONVERSATION.FORM.ERROR_MESSAGE')
+    );
+  } finally {
+    isOpeningPhoneConversation.value = false;
+  }
 };
 
 watch(

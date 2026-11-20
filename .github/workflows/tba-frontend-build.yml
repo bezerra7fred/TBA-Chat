@@ -41,6 +41,7 @@ jobs:
           app/javascript/shared/helpers/specs/MessageFormatter.spec.js
           app/javascript/dashboard/store/modules/specs/conversations/helpers.spec.js
           app/javascript/dashboard/store/modules/specs/conversations/getters.spec.js
+          app/javascript/dashboard/store/modules/specs/contactConversations/actions.spec.js
           app/javascript/dashboard/helper/AudioAlerts/specs/faviconHelper.spec.js
           app/javascript/dashboard/helper/specs/phoneNumberHelper.spec.js
           app/javascript/dashboard/helper/specs/contactConversationHelper.spec.js

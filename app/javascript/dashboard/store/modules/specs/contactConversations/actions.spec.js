@@ -67,6 +67,28 @@ describe('#actions', () => {
   });
 
   describe('#create', () => {
+    it('creates an empty conversation for a phone-link start', async () => {
+      axios.post.mockResolvedValue({ data: conversationList[0] });
+      const params = {
+        inboxId: 8,
+        sourceId: 'whatsapp:contact-source',
+        contactId: 4,
+        assigneeId: 6,
+      };
+
+      await actions.create(
+        { commit, state: { records: {} } },
+        { params, isFromWhatsApp: false }
+      );
+
+      const payload = axios.post.mock.calls[0][1];
+      expect(payload.get('inbox_id')).toBe(String(params.inboxId));
+      expect(payload.get('contact_id')).toBe(String(params.contactId));
+      expect(payload.get('source_id')).toBe(params.sourceId);
+      expect(payload.get('assignee_id')).toBe(String(params.assigneeId));
+      expect(payload.has('message[content]')).toBe(false);
+    });
+
     it('sends correct actions if API is success', async () => {
       axios.post.mockResolvedValue({ data: conversationList[0] });
       await actions.create(
