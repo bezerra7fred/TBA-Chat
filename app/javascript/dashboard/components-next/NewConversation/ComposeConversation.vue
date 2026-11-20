@@ -23,7 +23,7 @@ import {
   processContactableInboxes,
   mergeInboxDetails,
 } from 'dashboard/components-next/NewConversation/helpers/composeConversationHelper';
-import { getWhatsAppContactableInbox } from 'dashboard/helper/contactConversationHelper';
+import { buildWhatsAppContactableInboxes } from 'dashboard/helper/contactConversationHelper';
 
 import Popover from 'dashboard/components-next/popover/Popover.vue';
 import ComposeNewConversationForm from 'dashboard/components-next/NewConversation/components/ComposeNewConversationForm.vue';
@@ -242,20 +242,25 @@ const openPhoneContactInWhatsappComposer = async event => {
 
   clearFormState();
   formState.message = '';
-  // Contactable-inbox responses are slim and may omit the Twilio medium. Load
-  // the full account inbox records before merging them into the composer list.
+  // Load all account inbox records and construct the contactable choices from
+  // the phone itself. This mirrors the Via: WhatsApp form selection without
+  // requiring a contact_inbox association to exist first.
   await store.dispatch('inboxes/get');
-  await handleSelectedContact({ action: 'contact', ...contact });
-
-  const whatsappInbox = getWhatsAppContactableInbox(
-    selectedContact.value?.contactInboxes || []
+  const whatsappInboxes = buildWhatsAppContactableInboxes(
+    inboxesList.value,
+    contact.phoneNumber || phoneNumber
   );
-  if (!whatsappInbox) {
+  if (!whatsappInboxes.length) {
     useAlert(t('CONTACT_PANEL.PHONE_CONTACT_NO_CONVERSATION'));
     return;
   }
 
-  targetInbox.value = whatsappInbox;
+  selectedContact.value = {
+    ...contact,
+    contactInboxes: whatsappInboxes,
+  };
+  contacts.value = [];
+  targetInbox.value = whatsappInboxes[0];
   await popoverRef.value?.show();
 };
 
