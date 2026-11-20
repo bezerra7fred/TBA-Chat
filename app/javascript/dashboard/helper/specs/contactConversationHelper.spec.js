@@ -1,80 +1,83 @@
-import { buildWhatsAppContactableInboxes } from '../contactConversationHelper';
+import { findWhatsAppInboxOption } from '../contactConversationHelper';
 
-describe('buildWhatsAppContactableInboxes', () => {
-  it('builds a WhatsApp inbox choice from account inboxes and a phone number', () => {
-    const accountInboxes = [
-      { id: 1, channel_type: 'Channel::Email' },
-      { id: 2, channel_type: 'Channel::Whatsapp', name: 'Sales' },
-    ];
+describe('findWhatsAppInboxOption', () => {
+  it('selects the inbox named whatsapp, including custom API inboxes', () => {
+    const email = {
+      id: 1,
+      name: 'Support',
+      label: 'Support',
+      channelType: 'Channel::Email',
+    };
+    const whatsapp = {
+      id: 2,
+      name: 'whatsapp',
+      label: 'whatsapp',
+      channelType: 'Channel::Api',
+      sourceId: 'server-generated-source-id',
+    };
 
-    expect(
-      buildWhatsAppContactableInboxes(accountInboxes, '+5511987654321')
-    ).toEqual([
-      {
-        id: 2,
-        channelType: 'Channel::Whatsapp',
-        name: 'Sales',
-        sourceId: '5511987654321',
-      },
-    ]);
+    expect(findWhatsAppInboxOption([email, whatsapp])).toBe(whatsapp);
   });
 
-  it('creates the Twilio WhatsApp source id without a contact-inbox row', () => {
-    const accountInboxes = [
-      {
-        id: 3,
-        channel_type: 'Channel::TwilioSms',
-        medium: 'whatsapp',
-        phone_number: 'whatsapp:+15551234567',
-      },
-    ];
+  it('prefers an exact WhatsApp label when native and custom inboxes exist', () => {
+    const nativeInbox = {
+      id: 1,
+      name: 'Business line',
+      label: 'Business line (+15551234567)',
+      channelType: 'Channel::Whatsapp',
+    };
+    const customInbox = {
+      id: 2,
+      name: 'whatsapp',
+      label: 'whatsapp',
+      channelType: 'Channel::Api',
+    };
 
-    expect(
-      buildWhatsAppContactableInboxes(accountInboxes, '+5511987654321')
-    ).toEqual([
-      {
-        id: 3,
-        channelType: 'Channel::TwilioSms',
-        medium: 'whatsapp',
-        phoneNumber: 'whatsapp:+15551234567',
-        sourceId: 'whatsapp:+5511987654321',
-      },
-    ]);
+    expect(findWhatsAppInboxOption([nativeInbox, customInbox])).toBe(
+      customInbox
+    );
   });
 
-  it('recognizes Twilio WhatsApp by its address when medium is omitted', () => {
-    const accountInboxes = [
-      {
-        id: 4,
-        channel_type: 'Channel::TwilioSms',
-        phone_number: 'whatsapp:+15551234567',
-      },
-    ];
+  it('recognizes Twilio WhatsApp by medium or its WhatsApp address', () => {
+    const twilioInbox = {
+      id: 3,
+      name: 'WhatsApp outbound',
+      label: 'WhatsApp outbound',
+      channelType: 'Channel::TwilioSms',
+      medium: 'whatsapp',
+    };
+    const smsInbox = {
+      id: 4,
+      name: 'SMS',
+      label: 'SMS',
+      channelType: 'Channel::TwilioSms',
+      medium: 'sms',
+    };
 
+    expect(findWhatsAppInboxOption([smsInbox, twilioInbox])).toBe(twilioInbox);
     expect(
-      buildWhatsAppContactableInboxes(accountInboxes, '+14155552671')
-    ).toEqual([
-      expect.objectContaining({
-        id: 4,
-        sourceId: 'whatsapp:+14155552671',
-      }),
-    ]);
+      findWhatsAppInboxOption([
+        {
+          id: 5,
+          name: 'Legacy',
+          label: 'Legacy',
+          channelType: 'Channel::TwilioSms',
+          phoneNumber: 'whatsapp:+15551234567',
+        },
+      ])
+    ).toEqual(expect.objectContaining({ id: 5 }));
   });
 
-  it('does not return non-WhatsApp inboxes or choices without a phone number', () => {
-    const accountInboxes = [
-      { id: 1, channel_type: 'Channel::Email' },
-      { id: 2, channel_type: 'Channel::TwilioSms', medium: 'sms' },
-    ];
-
+  it('returns undefined if there is no WhatsApp choice', () => {
     expect(
-      buildWhatsAppContactableInboxes(accountInboxes, '+5511987654321')
-    ).toEqual([]);
-    expect(
-      buildWhatsAppContactableInboxes(
-        [{ id: 3, channel_type: 'Channel::Whatsapp' }],
-        ''
-      )
-    ).toEqual([]);
+      findWhatsAppInboxOption([
+        {
+          id: 1,
+          name: 'Support',
+          label: 'Support',
+          channelType: 'Channel::Email',
+        },
+      ])
+    ).toBeUndefined();
   });
 });

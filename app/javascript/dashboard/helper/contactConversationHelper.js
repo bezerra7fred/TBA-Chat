@@ -1,29 +1,32 @@
 import { INBOX_TYPES } from 'dashboard/helper/inbox';
-import camelcaseKeys from 'camelcase-keys';
 
-const isWhatsAppInbox = inbox => {
-  const { channelType, medium, phoneNumber = '' } = inbox;
-  return (
-    channelType === INBOX_TYPES.WHATSAPP ||
-    (channelType === INBOX_TYPES.TWILIO &&
-      (medium === 'whatsapp' || /^whatsapp:/i.test(phoneNumber)))
+const includesWhatsApp = value =>
+  String(value || '')
+    .trim()
+    .toLowerCase()
+    .includes('whatsapp');
+
+const isWhatsAppChannel = ({ channelType, medium, phoneNumber }) =>
+  channelType === INBOX_TYPES.WHATSAPP ||
+  (channelType === INBOX_TYPES.TWILIO &&
+    (medium === 'whatsapp' || /^whatsapp:/i.test(phoneNumber || '')));
+
+// Match the option the user sees in the compose modal's "Via" dropdown.
+// Some accounts expose their WhatsApp channel as a custom API inbox named
+// "whatsapp", so checking channel_type alone misses the selectable inbox.
+export const findWhatsAppInboxOption = inboxOptions => {
+  const exactNameMatch = inboxOptions.find(
+    option =>
+      String(option.name || '').trim().toLowerCase() === 'whatsapp' ||
+      String(option.label || '').trim().toLowerCase() === 'whatsapp'
   );
-};
+  if (exactNameMatch) return exactNameMatch;
 
-export const buildWhatsAppContactableInboxes = (inboxes, contactPhone) => {
-  const phoneNumber = String(contactPhone || '').trim();
-  if (!phoneNumber) return [];
-
-  return inboxes
-    .map(inbox => camelcaseKeys(inbox, { deep: true }))
-    .filter(isWhatsAppInbox)
-    .map(inbox => ({
-      ...inbox,
-      // Match the ContactableInboxesService source IDs without requiring an
-      // existing contact_inbox row for this phone number.
-      sourceId:
-        inbox.channelType === INBOX_TYPES.TWILIO
-          ? `whatsapp:${phoneNumber}`
-          : phoneNumber.replace(/\+/g, ''),
-    }));
+  return (
+    inboxOptions.find(isWhatsAppChannel) ||
+    inboxOptions.find(
+      option =>
+        includesWhatsApp(option.name) || includesWhatsApp(option.label)
+    )
+  );
 };

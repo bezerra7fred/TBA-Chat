@@ -17,13 +17,14 @@ import { debounce } from '@chatwoot/utils';
 import { emitter } from 'shared/helpers/mitt';
 import { BUS_EVENTS } from 'shared/constants/busEvents';
 import {
+  buildContactableInboxesList,
   createContactSearcher,
   createNewContact,
   fetchContactableInboxes,
   processContactableInboxes,
   mergeInboxDetails,
 } from 'dashboard/components-next/NewConversation/helpers/composeConversationHelper';
-import { buildWhatsAppContactableInboxes } from 'dashboard/helper/contactConversationHelper';
+import { findWhatsAppInboxOption } from 'dashboard/helper/contactConversationHelper';
 
 import Popover from 'dashboard/components-next/popover/Popover.vue';
 import ComposeNewConversationForm from 'dashboard/components-next/NewConversation/components/ComposeNewConversationForm.vue';
@@ -242,25 +243,29 @@ const openPhoneContactInWhatsappComposer = async event => {
 
   clearFormState();
   formState.message = '';
-  // Load all account inbox records and construct the contactable choices from
-  // the phone itself. This mirrors the Via: WhatsApp form selection without
-  // requiring a contact_inbox association to exist first.
+  // Mirror the modal's own "Via" options and choose the inbox labelled
+  // whatsapp. This supports custom API inboxes named whatsapp as well as
+  // native WhatsApp and Twilio channels.
   await store.dispatch('inboxes/get');
-  const whatsappInboxes = buildWhatsAppContactableInboxes(
-    inboxesList.value,
-    contact.phoneNumber || phoneNumber
+  const contactableInboxes = await fetchContactableInboxes(contact.id);
+  const mergedContactableInboxes = mergeInboxDetails(
+    contactableInboxes,
+    inboxesList.value
   );
-  if (!whatsappInboxes.length) {
+  const whatsappInbox = findWhatsAppInboxOption(
+    buildContactableInboxesList(mergedContactableInboxes)
+  );
+  if (!whatsappInbox) {
     useAlert(t('CONTACT_PANEL.PHONE_CONTACT_NO_CONVERSATION'));
     return;
   }
 
   selectedContact.value = {
     ...contact,
-    contactInboxes: whatsappInboxes,
+    contactInboxes: mergedContactableInboxes,
   };
   contacts.value = [];
-  targetInbox.value = whatsappInboxes[0];
+  targetInbox.value = whatsappInbox;
   await popoverRef.value?.show();
 };
 
