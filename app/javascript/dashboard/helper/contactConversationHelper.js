@@ -1,10 +1,11 @@
 import { INBOX_TYPES } from 'dashboard/helper/inbox';
 
 export const getWhatsAppContactableInbox = contactableInboxes =>
-  contactableInboxes.find(({ inbox }) => {
-    const isWhatsAppChannel = inbox.channel_type === INBOX_TYPES.WHATSAPP;
+  contactableInboxes.find(({ inbox = {} }) => {
+    const channelType = inbox.channel_type || inbox.channelType;
+    const isWhatsAppChannel = channelType === INBOX_TYPES.WHATSAPP;
     const isTwilioWhatsApp =
-      inbox.channel_type === INBOX_TYPES.TWILIO && inbox.medium === 'whatsapp';
+      channelType === INBOX_TYPES.TWILIO && inbox.medium === 'whatsapp';
 
     return isWhatsAppChannel || isTwilioWhatsApp;
   });

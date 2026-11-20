@@ -33,6 +33,14 @@ describe('getWhatsAppContactableInbox', () => {
     ).toBe(twilioWhatsAppInbox);
   });
 
+  it('accepts the camel-cased contactable inbox payload used by the composer', () => {
+    const whatsappInbox = {
+      inbox: { id: 3, channelType: 'Channel::Whatsapp' },
+    };
+
+    expect(getWhatsAppContactableInbox([whatsappInbox])).toBe(whatsappInbox);
+  });
+
   it('returns undefined when no WhatsApp inbox is available', () => {
     expect(
       getWhatsAppContactableInbox([

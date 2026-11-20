@@ -1,5 +1,12 @@
 <script setup>
-import { reactive, ref, computed, onMounted, watch } from 'vue';
+import {
+  reactive,
+  ref,
+  computed,
+  onMounted,
+  onBeforeUnmount,
+  watch,
+} from 'vue';
 import { useStore, useMapGetter } from 'dashboard/composables/store';
 import { useI18n } from 'vue-i18n';
 import { useUISettings } from 'dashboard/composables/useUISettings';
@@ -16,6 +23,7 @@ import {
   processContactableInboxes,
   mergeInboxDetails,
 } from 'dashboard/components-next/NewConversation/helpers/composeConversationHelper';
+import { getWhatsAppContactableInbox } from 'dashboard/helper/contactConversationHelper';
 
 import Popover from 'dashboard/components-next/popover/Popover.vue';
 import ComposeNewConversationForm from 'dashboard/components-next/NewConversation/components/ComposeNewConversationForm.vue';
@@ -211,6 +219,26 @@ const onPopoverHide = () => {
   emit('close');
 };
 
+const openPhoneContactInWhatsappComposer = async event => {
+  const { contact } = event.detail || {};
+  if (!contact?.id) return;
+
+  clearFormState();
+  formState.message = '';
+  await handleSelectedContact({ action: 'contact', ...contact });
+
+  const whatsappInbox = getWhatsAppContactableInbox(
+    selectedContact.value?.contactInboxes || []
+  );
+  if (!whatsappInbox) {
+    useAlert(t('CONTACT_PANEL.PHONE_CONTACT_NO_CONVERSATION'));
+    return;
+  }
+
+  targetInbox.value = whatsappInbox;
+  await popoverRef.value?.show();
+};
+
 watch(
   activeContact,
   (currentContact, previousContact) => {
@@ -236,7 +264,20 @@ watch(
   { immediate: true, deep: true }
 );
 
-onMounted(() => resetContacts());
+onMounted(() => {
+  resetContacts();
+  window.addEventListener(
+    'tba:compose-phone-contact-whatsapp',
+    openPhoneContactInWhatsappComposer
+  );
+});
+
+onBeforeUnmount(() => {
+  window.removeEventListener(
+    'tba:compose-phone-contact-whatsapp',
+    openPhoneContactInWhatsappComposer
+  );
+});
 </script>
 
 <template>

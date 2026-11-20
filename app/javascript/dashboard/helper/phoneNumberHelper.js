@@ -31,14 +31,18 @@ export const normalizePhoneNumber = value => {
 };
 
 export const getPhoneNumberSearchTerms = value => {
+  const input = typeof value === 'string' ? value.trim() : '';
   const normalized = normalizePhoneNumber(value);
   if (!normalized) return [];
 
-  const terms = [digitsOnly(normalized)];
+  const terms = [input, normalized, digitsOnly(normalized)];
   // Some older contacts were saved as national numbers without +55.
   if (normalized.startsWith('+55')) {
     terms.push(normalized.slice(3));
   }
 
-  return [...new Set(terms.filter(Boolean))];
+  // Full digit strings do not match phone values stored with formatting.
+  terms.push(...(input.match(/\d{4,}/g) || []));
+
+  return [...new Set(terms.filter(term => term.length >= 4))];
 };

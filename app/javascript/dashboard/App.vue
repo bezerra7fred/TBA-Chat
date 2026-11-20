@@ -1,5 +1,6 @@
 <script>
 import { mapGetters } from 'vuex';
+import camelcaseKeys from 'camelcase-keys';
 import LoadingState from './components/widgets/LoadingState.vue';
 import NetworkNotification from './components/NetworkNotification.vue';
 import UpdateBanner from './components/app/UpdateBanner.vue';
@@ -25,7 +26,6 @@ import ReconnectService from 'dashboard/helper/ReconnectService';
 import { useUISettings } from 'dashboard/composables/useUISettings';
 import { useAlert } from 'dashboard/composables';
 import ContactAPI from 'dashboard/api/contacts';
-import { getWhatsAppContactableInbox } from 'dashboard/helper/contactConversationHelper';
 import {
   getPhoneNumberSearchTerms,
   normalizePhoneNumber,
@@ -133,13 +133,24 @@ export default {
         const searchTerms = getPhoneNumberSearchTerms(phoneNumber);
 
         for (const query of searchTerms) {
-          const {
-            data: { payload = [] },
-          } = await ContactAPI.search(query);
-          contact = payload.find(
-            candidate =>
-              normalizePhoneNumber(candidate.phone_number) === normalizedNumber
-          );
+          let page = 1;
+          let hasMore = true;
+
+          while (hasMore && page <= 5) {
+            const {
+              data: { payload = [], meta = {} },
+            } = await ContactAPI.search(query, page);
+            contact = payload.find(
+              candidate =>
+                normalizePhoneNumber(candidate.phone_number) ===
+                normalizedNumber
+            );
+            if (contact) break;
+
+            hasMore = Boolean(meta.has_more);
+            page += 1;
+          }
+
           if (contact) break;
         }
 
@@ -152,37 +163,11 @@ export default {
         const conversation = data.payload?.[0];
 
         if (!conversation) {
-          const { data: contactableInboxesData } =
-            await ContactAPI.getContactableInboxes(contact.id);
-          const whatsappContactableInbox = getWhatsAppContactableInbox(
-            contactableInboxesData.payload || []
-          );
-
-          if (!whatsappContactableInbox) {
-            useAlert(this.$t('CONTACT_PANEL.PHONE_CONTACT_NO_CONVERSATION'));
-            return;
-          }
-
-          const createdConversation = await this.store.dispatch(
-            'contactConversations/create',
-            {
-              params: {
-                contactId: contact.id,
-                inboxId: whatsappContactableInbox.inbox.id,
-                sourceId: whatsappContactableInbox.source_id,
-                assigneeId: this.currentUser?.id,
-              },
-              isFromWhatsApp: true,
-            }
-          );
-
-          await this.router.push({
-            name: 'inbox_conversation',
-            params: {
-              accountId: this.currentAccountId,
-              conversation_id: createdConversation.id,
+          window.dispatchEvent(
+            new CustomEvent('tba:compose-phone-contact-whatsapp', {
+              detail: { contact: camelcaseKeys(contact, { deep: true }) },
             },
-          });
+          );
           return;
         }
 
