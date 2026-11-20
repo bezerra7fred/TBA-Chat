@@ -89,8 +89,8 @@
     <script>
       // Turn message phone numbers into safe clickable links without parsing message text as HTML.
       (function() {
-        const phonePattern = /(?:\+?\d{1,3}[-.\s]?)?\(?\d{2}\)?[-.\s]?\d{4,5}[-.\s]?\d{4}/g;
-        const phoneTest = /(?:\+?\d{1,3}[-.\s]?)?\(?\d{2}\)?[-.\s]?\d{4,5}[-.\s]?\d{4}/;
+        const phonePattern = /(?<!\d)(?:\+?\d{1,3}[-.\s]?)?\(?\d{2,4}\)?[-.\s]?\d{3,5}[-.\s]?\d{3,5}(?!\d)/g;
+        const phoneTest = /(?<!\d)(?:\+?\d{1,3}[-.\s]?)?\(?\d{2,4}\)?[-.\s]?\d{3,5}[-.\s]?\d{3,5}(?!\d)/;
 
         function walkAndReplace(root) {
           const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
@@ -118,18 +118,19 @@
             phonePattern.lastIndex = 0;
 
             while ((match = phonePattern.exec(value))) {
-              const number = match[0].replace(/\D/g, '');
+              const phoneNumber = match[0];
+              const number = phoneNumber.replace(/\D/g, '');
               if (number.length < 8) continue;
 
               fragment.appendChild(document.createTextNode(value.slice(lastIndex, match.index)));
               const link = document.createElement('a');
-              link.href = '#';
+              link.href = `tel:${phoneNumber.replace(/[^\d+]/g, '')}`;
               link.className = 'link text-blue-600 underline font-medium';
               link.style.cssText = 'cursor:pointer; color:#2563eb; text-decoration:underline;';
-              link.textContent = match[0];
+              link.textContent = phoneNumber;
               link.addEventListener('click', event => {
                 event.preventDefault();
-                window.startNewChatWithNumber(number);
+                window.startNewChatWithNumber(phoneNumber);
               });
               fragment.appendChild(link);
               lastIndex = match.index + match[0].length;
@@ -143,54 +144,12 @@
           });
         }
 
-        window.startNewChatWithNumber = number => {
-          const searchQuery = number.replace(/\D/g, '');
-
-          const penIcon = document.querySelector('.i-lucide-pen-line');
-          let composeBtn = penIcon ? penIcon.closest('button') : null;
-          if (composeBtn) {
-            composeBtn.click();
-          }
-
-          setTimeout(() => {
-            const inputs = Array.from(document.querySelectorAll('input'));
-            const targetInput = inputs.find(i => {
-              const p = (i.getAttribute('placeholder') || '').toLowerCase();
-              return p.includes('pesquisar') || p.includes('search') || p.includes('telefone') || p.includes('phone') || p.includes('nome') || p.includes('contat') || i.classList.contains('multiselect__input');
-            });
-
-            if (targetInput) {
-              targetInput.focus();
-              targetInput.value = searchQuery;
-              targetInput.dispatchEvent(new Event('input', { bubbles: true }));
-              targetInput.dispatchEvent(new Event('change', { bubbles: true }));
-
-              let checkAttempts = 0;
-              const checkInterval = setInterval(() => {
-                checkAttempts++;
-                const suggestions = Array.from(document.querySelectorAll('.multiselect__content-wrapper li, .multiselect__element, [role="option"], .dropdown-menu li'));
-                if (suggestions.length > 0) {
-                  const firstOption = suggestions[0].querySelector('span') || suggestions[0];
-                  firstOption.click();
-                  clearInterval(checkInterval);
-
-                  setTimeout(() => {
-                    const waItem = Array.from(document.querySelectorAll('.multiselect__element, option, [role="option"], li, button, span, div')).find(el => {
-                      const txt = (el.textContent || '').trim().toLowerCase();
-                      return txt === 'whatsapp' || txt.includes('whatsapp');
-                    });
-                    if (waItem) {
-                      waItem.click();
-                    }
-                  }, 400);
-                }
-
-                if (checkAttempts > 20) {
-                  clearInterval(checkInterval);
-                }
-              }, 150);
-            }
-          }, 600);
+        window.startNewChatWithNumber = phoneNumber => {
+          window.dispatchEvent(
+            new CustomEvent('tba:open-contact-conversation', {
+              detail: { phoneNumber },
+            })
+          );
         };
 
         const runLinkifier = () => {

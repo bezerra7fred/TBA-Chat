@@ -23,6 +23,12 @@ import {
 } from './helper/pushHelper';
 import ReconnectService from 'dashboard/helper/ReconnectService';
 import { useUISettings } from 'dashboard/composables/useUISettings';
+import { useAlert } from 'dashboard/composables';
+import ContactAPI from 'dashboard/api/contacts';
+import {
+  getPhoneNumberSearchTerms,
+  normalizePhoneNumber,
+} from 'dashboard/helper/phoneNumberHelper';
 
 export default {
   name: 'App',
@@ -59,6 +65,7 @@ export default {
     return {
       latestChatwootVersion: null,
       reconnectService: null,
+      phoneLookupInProgress: false,
     };
   },
   computed: {
@@ -84,6 +91,10 @@ export default {
     },
   },
   mounted() {
+    window.addEventListener(
+      'tba:open-contact-conversation',
+      this.openContactConversationByPhone
+    );
     this.initializeColorTheme();
     this.listenToThemeChanges();
     // If user locale is set, use it; otherwise use account locale
@@ -92,6 +103,10 @@ export default {
     );
   },
   unmounted() {
+    window.removeEventListener(
+      'tba:open-contact-conversation',
+      this.openContactConversationByPhone
+    );
     if (this.reconnectService) {
       this.reconnectService.disconnect();
     }
@@ -103,6 +118,62 @@ export default {
     listenToThemeChanges() {
       const mql = window.matchMedia('(prefers-color-scheme: dark)');
       mql.onchange = e => setColorTheme(e.matches);
+    },
+    async openContactConversationByPhone(event) {
+      if (this.phoneLookupInProgress || !this.currentAccountId) return;
+
+      const { phoneNumber } = event.detail || {};
+      const normalizedNumber = normalizePhoneNumber(phoneNumber);
+      if (!normalizedNumber) return;
+
+      this.phoneLookupInProgress = true;
+      try {
+        let contact = null;
+        const searchTerms = getPhoneNumberSearchTerms(phoneNumber);
+
+        for (const query of searchTerms) {
+          const {
+            data: { payload = [] },
+          } = await ContactAPI.search(query);
+          contact = payload.find(
+            candidate =>
+              normalizePhoneNumber(candidate.phone_number) === normalizedNumber
+          );
+          if (contact) break;
+        }
+
+        if (!contact) {
+          useAlert(this.$t('CONTACT_PANEL.PHONE_CONVERSATION_NOT_FOUND'));
+          return;
+        }
+
+        const { data } = await ContactAPI.getConversations(contact.id);
+        const conversation = data.payload?.[0];
+
+        if (!conversation) {
+          await this.router.push({
+            name: 'contacts_edit',
+            params: {
+              accountId: this.currentAccountId,
+              contactId: contact.id,
+            },
+          });
+          useAlert(this.$t('CONTACT_PANEL.PHONE_CONTACT_NO_CONVERSATION'));
+          return;
+        }
+
+        await this.router.push({
+          name: 'inbox_conversation',
+          params: {
+            accountId: this.currentAccountId,
+            conversation_id: conversation.id,
+          },
+        });
+      } catch {
+        useAlert(this.$t('CONTACT_PANEL.PHONE_CONVERSATION_LOOKUP_ERROR'));
+      } finally {
+        this.phoneLookupInProgress = false;
+      }
     },
     setLocale(locale) {
       if (locale) {

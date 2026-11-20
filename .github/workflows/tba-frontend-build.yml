@@ -42,6 +42,7 @@ jobs:
           app/javascript/dashboard/store/modules/specs/conversations/helpers.spec.js
           app/javascript/dashboard/store/modules/specs/conversations/getters.spec.js
           app/javascript/dashboard/helper/AudioAlerts/specs/faviconHelper.spec.js
+          app/javascript/dashboard/helper/specs/phoneNumberHelper.spec.js
           app/javascript/shared/composables/specs/useBranding.spec.js
           --maxWorkers=2
         env:
