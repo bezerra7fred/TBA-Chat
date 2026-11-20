@@ -1,6 +1,6 @@
 {
   "LOGIN": {
-    "TITLE": "Login to Chatwoot",
+    "TITLE": "Login to TBA Chat",
     "EMAIL": {
       "LABEL": "El. paštas",
       "PLACEHOLDER": "example{'@'}companyname.com",

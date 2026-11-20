@@ -29,6 +29,16 @@ master.key
 
 # Ignore env files
 .env
+.env.*
+!.env.example
+
+# Local backups and temporary QR data
+*.bak
+*.bak.*
+*.bkp
+*.bkp.*
+/public/qrcode.html
+/public/qrcode.json
 
 public/uploads
 public/packs*

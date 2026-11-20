@@ -204,6 +204,6 @@ const sortConfig = {
 
 export const sortComparator = (a, b, sortKey) => {
   const [sortMethod, sortDirection] =
-    SORT_OPTIONS[sortKey] || SORT_OPTIONS.last_activity_at_desc;
+    SORT_OPTIONS[sortKey] || SORT_OPTIONS.unread;
   return sortConfig[sortMethod](a, b, sortDirection);
 };

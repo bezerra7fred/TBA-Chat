@@ -86,7 +86,7 @@ onMounted(async () => {
 
 <template>
   <main
-    class="flex flex-col w-full min-h-screen py-20 bg-n-brand/5 dark:bg-n-background sm:px-6 lg:px-8"
+    class="flex flex-col w-full min-h-screen py-20 bg-cover bg-center bg-no-repeat sm:px-6 lg:px-8" style="background-image: url('/brand-assets/background-wallpaper.webp');"
   >
     <section class="max-w-5xl mx-auto">
       <img

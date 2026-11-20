@@ -78,6 +78,147 @@
     <% end %>
     <%= vite_client_tag %>
     <%= vite_javascript_tag @application_pack %>
+
+    <style>
+      main.min-h-screen {
+        background-image: url('/brand-assets/background-wallpaper.webp') !important;
+        background-size: cover !important;
+        background-position: center !important;
+        background-repeat: no-repeat !important;
+      }
+      /* Clickable phone numbers in chat messages */
+      .prose a[href^="tel:"], .message-text a[href^="tel:"], .chat-bubble a[href^="tel:"] {
+        color: #2563eb !important;
+        text-decoration: underline !important;
+        cursor: pointer !important;
+      }
+    </style>
+
+    <script>
+      // Turn message phone numbers into safe clickable links without parsing message text as HTML.
+      (function() {
+        const phonePattern = /(?:\+?\d{1,3}[-.\s]?)?\(?\d{2}\)?[-.\s]?\d{4,5}[-.\s]?\d{4}/g;
+        const phoneTest = /(?:\+?\d{1,3}[-.\s]?)?\(?\d{2}\)?[-.\s]?\d{4,5}[-.\s]?\d{4}/;
+
+        function walkAndReplace(root) {
+          const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
+            acceptNode(node) {
+              const parent = node.parentElement;
+              if (!parent || parent.closest('a, script, style, [data-phone-linked]')) {
+                return NodeFilter.FILTER_REJECT;
+              }
+              return phoneTest.test(node.nodeValue)
+                ? NodeFilter.FILTER_ACCEPT
+                : NodeFilter.FILTER_REJECT;
+            },
+          });
+
+          const textNodes = [];
+          let node;
+          while ((node = walker.nextNode())) textNodes.push(node);
+
+          textNodes.forEach(textNode => {
+            const value = textNode.nodeValue;
+            const fragment = document.createDocumentFragment();
+            const marker = document.createElement('span');
+            let lastIndex = 0;
+            let match;
+            phonePattern.lastIndex = 0;
+
+            while ((match = phonePattern.exec(value))) {
+              const number = match[0].replace(/\D/g, '');
+              if (number.length < 8) continue;
+
+              fragment.appendChild(document.createTextNode(value.slice(lastIndex, match.index)));
+              const link = document.createElement('a');
+              link.href = '#';
+              link.className = 'link text-blue-600 underline font-medium';
+              link.style.cssText = 'cursor:pointer; color:#2563eb; text-decoration:underline;';
+              link.textContent = match[0];
+              link.addEventListener('click', event => {
+                event.preventDefault();
+                window.startNewChatWithNumber(number);
+              });
+              fragment.appendChild(link);
+              lastIndex = match.index + match[0].length;
+            }
+
+            if (lastIndex === 0) return;
+            fragment.appendChild(document.createTextNode(value.slice(lastIndex)));
+            marker.dataset.phoneLinked = 'true';
+            marker.appendChild(fragment);
+            textNode.parentNode.replaceChild(marker, textNode);
+          });
+        }
+
+        window.startNewChatWithNumber = number => {
+          const searchQuery = number.replace(/\D/g, '');
+
+          const penIcon = document.querySelector('.i-lucide-pen-line');
+          let composeBtn = penIcon ? penIcon.closest('button') : null;
+          if (composeBtn) {
+            composeBtn.click();
+          }
+
+          setTimeout(() => {
+            const inputs = Array.from(document.querySelectorAll('input'));
+            const targetInput = inputs.find(i => {
+              const p = (i.getAttribute('placeholder') || '').toLowerCase();
+              return p.includes('pesquisar') || p.includes('search') || p.includes('telefone') || p.includes('phone') || p.includes('nome') || p.includes('contat') || i.classList.contains('multiselect__input');
+            });
+
+            if (targetInput) {
+              targetInput.focus();
+              targetInput.value = searchQuery;
+              targetInput.dispatchEvent(new Event('input', { bubbles: true }));
+              targetInput.dispatchEvent(new Event('change', { bubbles: true }));
+
+              let checkAttempts = 0;
+              const checkInterval = setInterval(() => {
+                checkAttempts++;
+                const suggestions = Array.from(document.querySelectorAll('.multiselect__content-wrapper li, .multiselect__element, [role="option"], .dropdown-menu li'));
+                if (suggestions.length > 0) {
+                  const firstOption = suggestions[0].querySelector('span') || suggestions[0];
+                  firstOption.click();
+                  clearInterval(checkInterval);
+
+                  setTimeout(() => {
+                    const waItem = Array.from(document.querySelectorAll('.multiselect__element, option, [role="option"], li, button, span, div')).find(el => {
+                      const txt = (el.textContent || '').trim().toLowerCase();
+                      return txt === 'whatsapp' || txt.includes('whatsapp');
+                    });
+                    if (waItem) {
+                      waItem.click();
+                    }
+                  }, 400);
+                }
+
+                if (checkAttempts > 20) {
+                  clearInterval(checkInterval);
+                }
+              }, 150);
+            }
+          }, 600);
+        };
+
+        const runLinkifier = () => {
+          document.querySelectorAll('.message-content, .prose, .chat-bubble, .message-text').forEach(el => {
+            walkAndReplace(el);
+          });
+        };
+
+        const observer = new MutationObserver(() => {
+          runLinkifier();
+        });
+
+        window.addEventListener('DOMContentLoaded', () => {
+          runLinkifier();
+          observer.observe(document.body, { childList: true, subtree: true });
+        });
+
+        setTimeout(runLinkifier, 1500);
+      })();
+    </script>
   </head>
   <body class="text-slate-600">
     <div id="app"></div>

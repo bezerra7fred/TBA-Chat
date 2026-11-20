@@ -2,12 +2,15 @@ import MarkdownIt from 'markdown-it';
 import mila from 'markdown-it-link-attributes';
 import mentionPlugin from './markdownIt/link';
 
+const isValidImageDimension = value =>
+  /^(?:\d+(?:\.\d+)?(?:px|%)?|auto)$/i.test(value);
+
 const setImageSizing = inlineToken => {
   const imgSrc = inlineToken.attrGet('src');
   if (!imgSrc) return;
-  const url = new URL(imgSrc);
+  const url = new URL(imgSrc, 'https://chatwoot.local');
   const width = url.searchParams.get('cw_image_width');
-  if (width) {
+  if (width && isValidImageDimension(width)) {
     inlineToken.attrSet(
       'style',
       `width: ${width}; max-width: 100%; height: auto;`
@@ -15,7 +18,9 @@ const setImageSizing = inlineToken => {
     return;
   }
   const height = url.searchParams.get('cw_image_height');
-  if (height) inlineToken.attrSet('style', `height: ${height};`);
+  if (height && isValidImageDimension(height)) {
+    inlineToken.attrSet('style', `height: ${height};`);
+  }
 };
 
 const processInlineToken = blockToken => {
@@ -27,10 +32,6 @@ const processInlineToken = blockToken => {
 };
 
 const imgResizeManager = md => {
-  // If the image URL carries a cw_image_width or cw_image_height query param,
-  // add an inline style attribute so the rendered <img> respects the agent's
-  // resize choice. Width takes precedence (HC drag-resize); height is kept for
-  // legacy messages and the message-signature use case.
   md.core.ruler.after('inline', 'add-image-sizing', state => {
     state.tokens.forEach(blockToken => {
       if (blockToken.type === 'inline') {
@@ -40,7 +41,6 @@ const imgResizeManager = md => {
   });
 };
 
-// Empty table cells collapse to zero height; fill them with an nbsp like the email renderer.
 const fillEmptyTableCells = md => {
   md.core.ruler.after('inline', 'fill-empty-table-cells', state => {
     state.tokens.forEach((token, index) => {
@@ -78,13 +78,6 @@ const createMarkdownInstance = (linkify = true) => {
     });
 };
 
-// Help center article tables persist column widths as an internal
-// `<!--cw-colwidths:...-->` comment before the table. It exists only for the
-// editor's markdown round-trip and must never surface as text — markdown-it runs
-// with `html: false`, which would otherwise escape it into a visible comment in
-// rendered/plain output (e.g. dashboard search snippets). Strip the whole marker
-// line, including any blockquote prefix, so a quoted table's `>` prefixes don't
-// collapse together and break table parsing.
 const COLWIDTHS_MARKER_REGEX =
   /^[ \t>]*<!--cw-colwidths:[\d,]+-->[ \t]*\r?\n?/gm;
 

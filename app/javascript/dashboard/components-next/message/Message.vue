@@ -285,7 +285,7 @@ const flexOrientationClass = computed(() => {
 
 const gridClass = computed(() => {
   const map = {
-    [ORIENTATION.LEFT]: 'grid grid-cols-1fr',
+    [ORIENTATION.LEFT]: 'grid grid-cols-[24px_1fr]',
     [ORIENTATION.RIGHT]: 'grid grid-cols-[1fr_24px]',
   };
 
@@ -295,8 +295,8 @@ const gridClass = computed(() => {
 const gridTemplate = computed(() => {
   const map = {
     [ORIENTATION.LEFT]: `
-      "bubble"
-      "meta"
+      "avatar bubble"
+      "spacer meta"
     `,
     [ORIENTATION.RIGHT]: `
       "bubble avatar"
@@ -309,14 +309,11 @@ const gridTemplate = computed(() => {
 
 const shouldGroupWithNext = computed(() => {
   if (props.status === MESSAGE_STATUS.FAILED) return false;
-
   return props.groupWithNext;
 });
 
 const shouldShowAvatar = computed(() => {
   if (props.messageType === MESSAGE_TYPES.ACTIVITY) return false;
-  if (orientation.value === ORIENTATION.LEFT) return false;
-
   return true;
 });
 
@@ -517,13 +514,12 @@ function handleReplyTo() {
   emitter.emit(BUS_EVENTS.TOGGLE_REPLY_TO_MESSAGE, props);
 }
 
+const currentChat = useMapGetter('getSelectedChat');
+
 const avatarInfo = computed(() => {
   if (props.contentAttributes?.externalEcho) {
-    const { name, avatar_url, channel_type, medium, voice_enabled } =
-      inbox.value;
-    const iconName = avatar_url
-      ? null
-      : getInboxIconByType(channel_type, medium, 'fill', voice_enabled);
+    const { name, avatar_url, channel_type, medium, voice_enabled } = inbox.value;
+    const iconName = avatar_url ? null : getInboxIconByType(channel_type, medium, 'fill', voice_enabled);
     return {
       name: iconName ? '' : name || t('CONVERSATION.NATIVE_APP'),
       src: avatar_url || '',
@@ -531,19 +527,19 @@ const avatarInfo = computed(() => {
     };
   }
 
-  // If no sender, check for Slack (or other integration) sender info
-  if (!props.sender) {
-    const { senderName, senderAvatarUrl } = props.additionalAttributes || {};
-    if (senderName) {
-      return { name: senderName, src: senderAvatarUrl ?? '' };
-    }
-    return { name: t('CONVERSATION.BOT'), src: '' };
+  const { sender } = props;
+  const { name, type, avatarUrl, thumbnail, avatar_url } = sender || {};
+
+  // If sender is contact/client or not present, fallback to currentChat contact avatar
+  if (!sender || type === 'contact' || props.messageType === MESSAGE_TYPES.INCOMING) {
+    const chatContact = currentChat.value?.meta?.sender || currentChat.value?.contact || {};
+    return {
+      name: name || chatContact.name || chatContact.phone_number || t('CONVERSATION.BOT'),
+      src: thumbnail || avatarUrl || avatar_url || chatContact.thumbnail || chatContact.avatar_url || '',
+    };
   }
 
-  const { sender } = props;
-  const { name, type, avatarUrl, thumbnail } = sender || {};
-
-  // If sender type is agent bot, use avatarUrl
+  // Agent / Bot sender
   if ([SENDER_TYPES.AGENT_BOT, SENDER_TYPES.CAPTAIN_ASSISTANT].includes(type)) {
     return {
       name: name ?? '',
@@ -551,10 +547,9 @@ const avatarInfo = computed(() => {
     };
   }
 
-  // For all other senders, use thumbnail
   return {
     name: name ?? '',
-    src: thumbnail ?? '',
+    src: thumbnail || avatarUrl || avatar_url || '',
   };
 });
 
@@ -627,7 +622,7 @@ provideMessageContext({
     >
       <div
         v-if="!shouldGroupWithNext && shouldShowAvatar"
-        v-tooltip.left-end="avatarTooltip"
+        v-tooltip.top="avatarTooltip"
         class="[grid-area:avatar] flex items-end"
       >
         <Avatar v-bind="avatarInfo" :size="24" />
@@ -636,7 +631,7 @@ provideMessageContext({
         class="[grid-area:bubble] flex min-w-0"
         :class="{
           'ltr:ml-8 rtl:mr-8 justify-end': orientation === ORIENTATION.RIGHT,
-          'ltr:mr-8 rtl:ml-8': orientation === ORIENTATION.LEFT,
+          'ltr:mr-8 rtl:ml-8': orientation === ORIENTATION.LEFT && !shouldShowAvatar,
           'flex-col items-start gap-2':
             shouldShowWhatsappReferral || isForwardedEmail,
         }"

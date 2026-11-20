@@ -13,7 +13,7 @@ const state = {
   attachments: {},
   listLoadingStatus: true,
   chatStatusFilter: wootConstants.STATUS_TYPE.OPEN,
-  chatSortFilter: wootConstants.SORT_BY_TYPE.LATEST,
+  chatSortFilter: 'unread',
   currentInbox: null,
   selectedChatId: null,
   appliedFilters: [],

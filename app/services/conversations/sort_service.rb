@@ -1,5 +1,5 @@
 class Conversations::SortService
-  DEFAULT_SORT = 'last_activity_at_desc'.freeze
+  DEFAULT_SORT = 'unread'.freeze
   SORT_OPTIONS = {
     'last_activity_at_asc' => %w[sort_on_last_activity_at asc],
     'last_activity_at_desc' => %w[sort_on_last_activity_at desc],
