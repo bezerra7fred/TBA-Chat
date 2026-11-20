@@ -41,6 +41,20 @@ describe('getWhatsAppContactableInbox', () => {
     expect(getWhatsAppContactableInbox([whatsappInbox])).toBe(whatsappInbox);
   });
 
+  it('recognizes Twilio WhatsApp from its address when medium is missing', () => {
+    const twilioWhatsAppInbox = {
+      inbox: {
+        id: 4,
+        channel_type: 'Channel::TwilioSms',
+        phone_number: 'whatsapp:+15551234567',
+      },
+    };
+
+    expect(getWhatsAppContactableInbox([twilioWhatsAppInbox])).toBe(
+      twilioWhatsAppInbox
+    );
+  });
+
   it('returns undefined when no WhatsApp inbox is available', () => {
     expect(
       getWhatsAppContactableInbox([

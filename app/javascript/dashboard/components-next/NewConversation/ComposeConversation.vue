@@ -242,6 +242,9 @@ const openPhoneContactInWhatsappComposer = async event => {
 
   clearFormState();
   formState.message = '';
+  // Contactable-inbox responses are slim and may omit the Twilio medium. Load
+  // the full account inbox records before merging them into the composer list.
+  await store.dispatch('inboxes/get');
   await handleSelectedContact({ action: 'contact', ...contact });
 
   const whatsappInbox = getWhatsAppContactableInbox(
