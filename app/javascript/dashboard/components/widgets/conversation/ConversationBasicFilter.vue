@@ -63,6 +63,10 @@ const chatStatusOptions = computed(() => [
     label: t('CHAT_LIST.CHAT_STATUS_FILTER_ITEMS.all.TEXT'),
     value: 'all',
   },
+  {
+    label: t('CHAT_LIST.CHAT_STATUS_FILTER_ITEMS.unread.TEXT'),
+    value: 'unread',
+  },
 ]);
 
 const chatSortOptions = computed(() => [

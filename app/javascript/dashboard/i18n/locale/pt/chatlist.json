@@ -35,6 +35,9 @@
       },
       "all": {
         "TEXT": "Todas"
+      },
+      "unread": {
+        "TEXT": "Não lidas"
       }
     },
     "VIEW_FILTER": "Visualizar",

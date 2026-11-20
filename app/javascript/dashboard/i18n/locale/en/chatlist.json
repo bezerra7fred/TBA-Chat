@@ -35,6 +35,9 @@
       },
       "all": {
         "TEXT": "All"
+      },
+      "unread": {
+        "TEXT": "Unread"
       }
     },
     "VIEW_FILTER": "View",
