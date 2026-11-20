@@ -35,8 +35,13 @@ jobs:
       - name: Install locked build dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Test message formatting
-        run: pnpm exec vitest run app/javascript/shared/helpers/specs/MessageFormatter.spec.js --maxWorkers=2
+      - name: Test message formatting and conversation filtering
+        run: >-
+          pnpm exec vitest run
+          app/javascript/shared/helpers/specs/MessageFormatter.spec.js
+          app/javascript/dashboard/store/modules/specs/conversations/helpers.spec.js
+          app/javascript/dashboard/store/modules/specs/conversations/getters.spec.js
+          --maxWorkers=2
         env:
           RAILS_ENV: test
           NODE_ENV: test
