@@ -220,7 +220,20 @@ const onPopoverHide = () => {
 };
 
 const openPhoneContactInWhatsappComposer = async event => {
-  const { contact } = event.detail || {};
+  let { contact, phoneNumber } = event.detail || {};
+  if (!contact && phoneNumber) {
+    try {
+      contact = await createNewContact(phoneNumber);
+    } catch (error) {
+      const message = parseAPIErrorResponse(error);
+      useAlert(
+        typeof message === 'string'
+          ? message
+          : t('COMPOSE_NEW_CONVERSATION.CONTACT_CREATE.ERROR_MESSAGE')
+      );
+      return;
+    }
+  }
   if (!contact?.id) return;
 
   clearFormState();

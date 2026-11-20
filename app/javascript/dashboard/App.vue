@@ -155,7 +155,11 @@ export default {
         }
 
         if (!contact) {
-          useAlert(this.$t('CONTACT_PANEL.PHONE_CONVERSATION_NOT_FOUND'));
+          const composeEvent = new CustomEvent(
+            'tba:compose-phone-contact-whatsapp',
+            { detail: { phoneNumber: normalizedNumber } }
+          );
+          window.dispatchEvent(composeEvent);
           return;
         }
 
