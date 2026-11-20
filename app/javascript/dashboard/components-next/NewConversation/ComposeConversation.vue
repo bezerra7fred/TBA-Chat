@@ -220,6 +220,10 @@ const onPopoverHide = () => {
 };
 
 const openPhoneContactInWhatsappComposer = async event => {
+  // The sidebar composer handles phone-link requests. Contact-page composers
+  // are already bound to a contact and must not create/open a second modal.
+  if (props.contactId) return;
+
   let { contact, phoneNumber } = event.detail || {};
   if (!contact && phoneNumber) {
     try {
