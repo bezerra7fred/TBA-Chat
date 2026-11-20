@@ -4,7 +4,7 @@
     "EMAIL_ADDRESS": "Endereço de e-mail",
     "PHONE_NUMBER": "Número de telefone",
     "PHONE_CONVERSATION_NOT_FOUND": "Não encontrei um contato com este número.",
-    "PHONE_CONTACT_NO_CONVERSATION": "O contato foi encontrado, mas ainda não tem conversa. Você pode iniciá-la pela página do contato.",
+    "PHONE_CONTACT_NO_CONVERSATION": "Não encontrei uma caixa de entrada do WhatsApp disponível para este contato.",
     "PHONE_CONVERSATION_LOOKUP_ERROR": "Não foi possível abrir a conversa deste número. Tente novamente.",
     "WHATSAPP_USERNAME": "Nome de usuário do WhatsApp",
     "IDENTIFIER": "Identificador",

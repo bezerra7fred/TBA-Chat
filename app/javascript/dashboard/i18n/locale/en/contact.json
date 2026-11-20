@@ -4,7 +4,7 @@
     "EMAIL_ADDRESS": "Email Address",
     "PHONE_NUMBER": "Phone number",
     "PHONE_CONVERSATION_NOT_FOUND": "No contact was found for this phone number.",
-    "PHONE_CONTACT_NO_CONVERSATION": "The contact was found, but has no conversation yet. You can start one from the contact page.",
+    "PHONE_CONTACT_NO_CONVERSATION": "No WhatsApp inbox is available for this contact.",
     "PHONE_CONVERSATION_LOOKUP_ERROR": "Could not open a conversation for this phone number. Please try again.",
     "WHATSAPP_USERNAME": "WhatsApp username",
     "IDENTIFIER": "Identifier",

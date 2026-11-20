@@ -25,6 +25,7 @@ import ReconnectService from 'dashboard/helper/ReconnectService';
 import { useUISettings } from 'dashboard/composables/useUISettings';
 import { useAlert } from 'dashboard/composables';
 import ContactAPI from 'dashboard/api/contacts';
+import { getWhatsAppContactableInbox } from 'dashboard/helper/contactConversationHelper';
 import {
   getPhoneNumberSearchTerms,
   normalizePhoneNumber,
@@ -151,14 +152,37 @@ export default {
         const conversation = data.payload?.[0];
 
         if (!conversation) {
+          const { data: contactableInboxesData } =
+            await ContactAPI.getContactableInboxes(contact.id);
+          const whatsappContactableInbox = getWhatsAppContactableInbox(
+            contactableInboxesData.payload || []
+          );
+
+          if (!whatsappContactableInbox) {
+            useAlert(this.$t('CONTACT_PANEL.PHONE_CONTACT_NO_CONVERSATION'));
+            return;
+          }
+
+          const createdConversation = await this.store.dispatch(
+            'contactConversations/create',
+            {
+              params: {
+                contactId: contact.id,
+                inboxId: whatsappContactableInbox.inbox.id,
+                sourceId: whatsappContactableInbox.source_id,
+                assigneeId: this.currentUser?.id,
+              },
+              isFromWhatsApp: true,
+            }
+          );
+
           await this.router.push({
-            name: 'contacts_edit',
+            name: 'inbox_conversation',
             params: {
               accountId: this.currentAccountId,
-              contactId: contact.id,
+              conversation_id: createdConversation.id,
             },
           });
-          useAlert(this.$t('CONTACT_PANEL.PHONE_CONTACT_NO_CONVERSATION'));
           return;
         }
 
