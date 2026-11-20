@@ -163,11 +163,11 @@ export default {
         const conversation = data.payload?.[0];
 
         if (!conversation) {
-          window.dispatchEvent(
-            new CustomEvent('tba:compose-phone-contact-whatsapp', {
-              detail: { contact: camelcaseKeys(contact, { deep: true }) },
-            },
+          const composeEvent = new CustomEvent(
+            'tba:compose-phone-contact-whatsapp',
+            { detail: { contact: camelcaseKeys(contact, { deep: true }) } }
           );
+          window.dispatchEvent(composeEvent);
           return;
         }
 
