@@ -56,18 +56,20 @@ class Messages::GroupParticipantResolver
   private_class_method :contacts_by_phone
 
   def self.sender_data_for(contact, participant)
-    return contact.push_event_data.merge(
-      name: contact.name.presence || participant[:name],
-      group_participant: true
-    ) if contact
-
-    {
-      name: participant[:name],
-      phone_number: "+#{participant[:phone]}",
-      thumbnail: '',
-      type: 'contact',
-      group_participant: true
-    }
+    if contact
+      contact.push_event_data.merge(
+        name: contact.name.presence || participant[:name],
+        group_participant: true
+      )
+    else
+      {
+        name: participant[:name],
+        phone_number: "+#{participant[:phone]}",
+        thumbnail: '',
+        type: 'contact',
+        group_participant: true
+      }
+    end
   end
   private_class_method :sender_data_for
 end

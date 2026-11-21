@@ -2,7 +2,8 @@ import { getMessageAvatarUrl } from '../messageAvatarHelper';
 
 describe('getMessageAvatarUrl', () => {
   it.each(['senderAvatarUrl', 'sender_avatar_url'])(
-    'prefers the per-message %s over the group avatar', attribute => {
+    'prefers the per-message %s over the group avatar',
+    attribute => {
       expect(
         getMessageAvatarUrl({
           additionalAttributes: { [attribute]: 'member-avatar.png' },
