@@ -16,7 +16,7 @@ RSpec.describe Messages::GroupParticipantResolver do
       inbox: inbox,
       conversation: conversation,
       sender: group_contact,
-      content: "**+1 (415) 555-0123 - Member Name:** hello"
+      content: '**+1 (415) 555-0123 - Member Name:** hello'
     )
   end
 

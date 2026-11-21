@@ -2,7 +2,7 @@
 
 # Resolves the individual sender included in group-message prefixes received by API inboxes.
 class Messages::GroupParticipantResolver
-  PREFIX_PATTERN = /\A\*\*\s*(?<phone>\+?[\d\s().-]{7,32}?)\s+-\s+(?<name>[^:\r\n]+):\*\*/.freeze
+  PREFIX_PATTERN = /\A\*\*\s*(?<phone>\+?[\d\s().-]{7,32}?)\s+-\s+(?<name>[^:\r\n]+):\*\*/
   MIN_PHONE_DIGITS = 7
   MAX_PHONE_DIGITS = 15
 
@@ -40,29 +40,34 @@ class Messages::GroupParticipantResolver
 
   def self.resolve_account_candidates(account_id, candidates)
     phones = candidates.map { |_message, participant| participant[:phone] }.uniq
-    contacts = Contact.where(account_id: account_id, phone_number: phones.map { |phone| "+#{phone}" })
-                      .includes(avatar_attachment: :blob)
-    contacts_by_phone = contacts.index_by { |contact| contact.phone_number.to_s.gsub(/\D/, '') }
+    contacts_by_phone = contacts_by_phone(account_id, phones)
 
     candidates.each do |message, participant|
-      contact = contacts_by_phone[participant[:phone]]
-      sender_data = if contact
-                      contact.push_event_data.merge(
-                        name: contact.name.presence || participant[:name],
-                        group_participant: true
-                      )
-                    else
-                      {
-                        name: participant[:name],
-                        phone_number: "+#{participant[:phone]}",
-                        thumbnail: '',
-                        type: 'contact',
-                        group_participant: true
-                      }
-                    end
-
-      message.sender_data = sender_data
+      message.sender_data = sender_data_for(contacts_by_phone[participant[:phone]], participant)
     end
   end
   private_class_method :resolve_account_candidates
+
+  def self.contacts_by_phone(account_id, phones)
+    Contact.where(account_id: account_id, phone_number: phones.map { |phone| "+#{phone}" })
+           .includes(avatar_attachment: :blob)
+           .index_by { |contact| contact.phone_number.to_s.gsub(/\D/, '') }
+  end
+  private_class_method :contacts_by_phone
+
+  def self.sender_data_for(contact, participant)
+    return contact.push_event_data.merge(
+      name: contact.name.presence || participant[:name],
+      group_participant: true
+    ) if contact
+
+    {
+      name: participant[:name],
+      phone_number: "+#{participant[:phone]}",
+      thumbnail: '',
+      type: 'contact',
+      group_participant: true
+    }
+  end
+  private_class_method :sender_data_for
 end
