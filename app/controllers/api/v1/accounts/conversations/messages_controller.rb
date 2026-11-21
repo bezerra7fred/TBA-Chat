@@ -3,6 +3,7 @@ class Api::V1::Accounts::Conversations::MessagesController < Api::V1::Accounts::
 
   def index
     @messages = message_finder.perform
+    Messages::GroupParticipantResolver.resolve_all(@messages)
   end
 
   def create

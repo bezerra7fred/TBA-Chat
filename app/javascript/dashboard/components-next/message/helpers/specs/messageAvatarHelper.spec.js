@@ -29,4 +29,25 @@ describe('getMessageAvatarUrl', () => {
   it('returns an empty URL when no avatar is available', () => {
     expect(getMessageAvatarUrl()).toBe('');
   });
+
+  it('does not fall back to the group avatar for a participant without a photo', () => {
+    expect(
+      getMessageAvatarUrl({
+        sender: { groupParticipant: true, thumbnail: '' },
+        chatContact: { thumbnail: 'group-avatar.png' },
+      })
+    ).toBe('');
+  });
+
+  it('uses the resolved participant photo instead of the group photo', () => {
+    expect(
+      getMessageAvatarUrl({
+        sender: {
+          groupParticipant: true,
+          thumbnail: 'member-avatar.png',
+        },
+        chatContact: { thumbnail: 'group-avatar.png' },
+      })
+    ).toBe('member-avatar.png');
+  });
 });

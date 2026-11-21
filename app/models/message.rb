@@ -169,9 +169,22 @@ class Message < ApplicationRecord
   end
 
   def merge_sender_attributes(data)
-    data[:sender] = sender.push_event_data if sender && !sender.is_a?(AgentBot)
-    data[:sender] = sender.push_event_data(inbox) if sender.is_a?(AgentBot)
+    serialized_sender = sender_data
+    data[:sender] = serialized_sender if serialized_sender.present?
     data
+  end
+
+  def sender_data
+    return @sender_data if defined?(@sender_data)
+
+    @sender_data = Messages::GroupParticipantResolver.resolve(self)
+    return @sender_data if @sender_data.present?
+
+    @sender_data = sender.is_a?(AgentBot) ? sender.push_event_data(inbox) : sender&.push_event_data
+  end
+
+  def sender_data=(data)
+    @sender_data = data
   end
 
   def webhook_push_event_data
