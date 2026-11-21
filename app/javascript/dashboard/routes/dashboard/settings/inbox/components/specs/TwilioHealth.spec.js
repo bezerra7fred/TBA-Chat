@@ -23,7 +23,9 @@ vi.mock('vue-i18n', () => ({
 vi.mock('shared/composables/useBranding', () => ({
   useBranding: () => ({
     replaceInstallationName: text =>
-      typeof text === 'string' ? text.replace(/chatwoot|tba chat/gi, 'Acme Desk') : text,
+      typeof text === 'string'
+        ? text.replace(/chatwoot|tba chat/gi, 'Acme Desk')
+        : text,
   }),
 }));
 
