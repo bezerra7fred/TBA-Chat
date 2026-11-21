@@ -1,4 +1,8 @@
 version: 2.1
+parameters:
+  tba_frontend_build:
+    type: boolean
+    default: false
 orbs:
   node: circleci/node@6.1.0
 
@@ -489,9 +493,98 @@ jobs:
             docker run --privileged --rm tonistiigi/binfmt --install amd64,arm64
             docker buildx create --use
             docker buildx build --platform linux/amd64,linux/arm64 --file docker/Dockerfile --output type=oci,dest=/tmp/chatwoot-test-image.tar .
+  tba-frontend-build:
+    <<: *defaults
+    resource_class: large
+    environment:
+      HUSKY: "0"
+      RAILS_ENV: production
+      VITE_RUBY_ENV: production
+      NODE_OPTIONS: --max-old-space-size=4096
+    steps:
+      - checkout
+      - node/install:
+          node-version: "24.22.1"
+      - node/install-pnpm:
+          version: "10.2.0"
+      - node/install-packages:
+          pkg-manager: pnpm
+          override-ci-command: pnpm install --frozen-lockfile
+      - run:
+          name: Test TBA frontend changes
+          command: |
+            pnpm exec vitest run \
+              app/javascript/dashboard/components-next/message/helpers/specs/messageAvatarHelper.spec.js \
+              app/javascript/shared/helpers/specs/MessageFormatter.spec.js \
+              app/javascript/dashboard/store/modules/specs/conversations/helpers.spec.js \
+              app/javascript/dashboard/store/modules/specs/conversations/getters.spec.js \
+              app/javascript/dashboard/store/modules/specs/contactConversations/actions.spec.js \
+              app/javascript/dashboard/helper/AudioAlerts/specs/faviconHelper.spec.js \
+              app/javascript/dashboard/helper/specs/phoneNumberHelper.spec.js \
+              app/javascript/dashboard/helper/specs/contactConversationHelper.spec.js \
+              app/javascript/shared/composables/specs/useBranding.spec.js \
+              --maxWorkers=2
+          environment:
+            RAILS_ENV: test
+            NODE_ENV: test
+            TZ: UTC
+      - run:
+          name: Build app and SDK
+          command: |
+            pnpm exec vite build --mode production
+            pnpm run build:sdk
+      - run:
+          name: Validate and package compiled files
+          command: python3 script/tba/package_frontend.py
+      - store_artifacts:
+          path: dist
+          destination: tba-frontend
+
+  nightly-installer:
+    <<: *defaults
+    machine:
+      image: ubuntu-2404:current
+    steps:
+      - checkout
+      - run:
+          name: Download and prepare Linux installer
+          command: |
+            curl -fsSL https://get.chatwoot.app/linux/install.sh -o install.sh
+            chmod +x install.sh
+            sed -i '/function configure_db() {/a sudo service postgresql start' install.sh
+            printf 'no\nyes\n' > input
+      - run:
+          name: Run Linux installer
+          command: sudo ./install.sh --install < input
+          no_output_timeout: 30m
+      - run:
+          name: Collect installer log
+          command: |
+            mkdir -p ~/build/installer-artifacts
+            if [ -f /var/log/chatwoot-setup.log ]; then
+              cp /var/log/chatwoot-setup.log ~/build/installer-artifacts/
+            fi
+          when: always
+      - store_artifacts:
+          path: ~/build/installer-artifacts
+          destination: nightly-installer
 
 workflows:
   version: 2
+  tba-frontend-build:
+    when: << pipeline.parameters.tba_frontend_build >>
+    jobs:
+      - tba-frontend-build
+  nightly-installer:
+    triggers:
+      - schedule:
+          cron: "0 0 * * *"
+          filters:
+            branches:
+              only:
+                - main
+    jobs:
+      - nightly-installer
   build:
     when: pipeline.event.name == "push" or pipeline.event.name == "pull_request"
     jobs:
