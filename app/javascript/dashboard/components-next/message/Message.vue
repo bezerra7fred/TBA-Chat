@@ -51,6 +51,7 @@ import ForwardedEmailBanner from './forward/ForwardedEmailBanner.vue';
 import ContextMenu from 'dashboard/modules/conversations/components/MessageContextMenu.vue';
 import { useBranding } from 'shared/composables/useBranding';
 import { useTranslations } from 'dashboard/composables/useTranslations';
+import { getMessageAvatarUrl } from './helpers/messageAvatarHelper';
 
 /**
  * @typedef {Object} Attachment
@@ -535,7 +536,11 @@ const avatarInfo = computed(() => {
     const chatContact = currentChat.value?.meta?.sender || currentChat.value?.contact || {};
     return {
       name: name || chatContact.name || chatContact.phone_number || t('CONVERSATION.BOT'),
-      src: thumbnail || avatarUrl || avatar_url || chatContact.thumbnail || chatContact.avatar_url || '',
+      src: getMessageAvatarUrl({
+        additionalAttributes: props.additionalAttributes,
+        sender,
+        chatContact,
+      }),
     };
   }
 

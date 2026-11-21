@@ -67,28 +67,20 @@ export const hasMessageFailedWithExternalError = pendingMessage => {
 
 const conversationListRequest = useAbortableRequest();
 
-const seedConversationInStore = ({ commit, dispatch }, conversation) => {
-  commit(types.SET_ALL_CONVERSATION, [conversation]);
-  commit(`contacts/${types.SET_CONTACT_ITEM}`, conversation.meta.sender);
-  dispatch('conversationLabels/setConversationLabel', {
-    id: conversation.id,
-    data: conversation.labels,
-  });
-};
-
 // actions
 const actions = {
-  seedConversation({ commit, dispatch }, conversation) {
-    seedConversationInStore({ commit, dispatch }, conversation);
-  },
-
   getConversation: async ({ commit, dispatch }, conversationId) => {
     try {
       const response = await ConversationApi.show(conversationId);
       // API refreshes can run in the background after reconnecting. Use the
       // list merge to preserve local message state without moving the agent's
       // scroll position or marking messages as read.
-      seedConversationInStore({ commit, dispatch }, response.data);
+      commit(types.SET_ALL_CONVERSATION, [response.data]);
+      commit(`contacts/${types.SET_CONTACT_ITEM}`, response.data.meta.sender);
+      dispatch('conversationLabels/setConversationLabel', {
+        id: response.data.id,
+        data: response.data.labels,
+      });
     } catch (error) {
       // Ignore error
     }
