@@ -43,9 +43,12 @@ describe('MessageReactions', () => {
     await wrapper
       .get('button[aria-label="CONVERSATION.REACTIONS.ADD"]')
       .trigger('click');
-    await wrapper
-      .get('button[aria-label="CONVERSATION.REACTIONS.ADD 👍"]')
-      .trigger('click');
+    const emojiButton = wrapper
+      .findAll('button')
+      .find(button => button.text() === '👍');
+
+    expect(emojiButton).toBeDefined();
+    await emojiButton.trigger('click');
 
     expect(store.dispatch).toHaveBeenCalledWith('reactMessage', {
       conversationId: 17,
