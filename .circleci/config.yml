@@ -86,6 +86,25 @@ jobs:
             bundle exec bundle-audit update
             bundle exec bundle-audit check
 
+  backend-test-assets:
+    docker:
+      - image: cimg/ruby:3.4.4-node
+    resource_class: large
+    environment:
+      RAILS_ENV: test
+      NODE_OPTIONS: --openssl-legacy-provider --max-old-space-size=5120
+    steps:
+      - checkout
+      - install-ruby-dependencies
+      - install-node-dependencies
+      - run:
+          name: Build Vite test assets
+          command: bin/vite build --clear --mode=test
+      - persist_to_workspace:
+          root: .
+          paths:
+            - public/vite-test
+
   backend-tests:
     docker:
       - image: cimg/ruby:3.4.4-node
@@ -102,13 +121,14 @@ jobs:
       POSTGRES_USERNAME: postgres
       POSTGRES_PASSWORD: ""
       REDIS_URL: redis://localhost:6379
-      NODE_OPTIONS: --openssl-legacy-provider
+      VITE_RUBY_AUTO_BUILD: "false"
     parallelism: 16
     resource_class: medium
     steps:
       - checkout
       - install-ruby-dependencies
-      - install-node-dependencies
+      - attach_workspace:
+          at: .
       - run:
           name: Wait for PostgreSQL and Redis
           command: |
@@ -124,11 +144,6 @@ jobs:
             }
             wait_for_port 5432
             wait_for_port 6379
-      - run:
-          name: Build Vite test assets
-          environment:
-            NODE_OPTIONS: --openssl-legacy-provider --max-old-space-size=3072
-          command: bin/vite build --clear --mode=test
       - run:
           name: Create and prepare database
           command: |
@@ -164,4 +179,7 @@ workflows:
       - frontend-checks
       - backend-lint
       - security-audit
-      - backend-tests
+      - backend-test-assets
+      - backend-tests:
+          requires:
+            - backend-test-assets
