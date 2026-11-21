@@ -465,7 +465,23 @@ const actions = {
   },
 
   updateMessage({ commit, dispatch, rootGetters, state }, message) {
-    commit(types.ADD_MESSAGE, message);
+    const contentAttributes = message.content_attributes || {};
+    const hasReactions = Object.prototype.hasOwnProperty.call(
+      contentAttributes,
+      'reactions'
+    );
+    const conversation = state.allConversations.find(
+      item => item.id === message.conversation_id
+    );
+    const hasLoadedMessage = conversation?.messages?.some(
+      item => item.id === message.id
+    );
+    commit(
+      hasReactions && hasLoadedMessage
+        ? types.UPDATE_MESSAGE_REACTIONS
+        : types.ADD_MESSAGE,
+      message
+    );
 
     const contactInfoRequest =
       message.content_attributes?.whatsapp_contact_info;

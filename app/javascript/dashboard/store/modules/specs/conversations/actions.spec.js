@@ -418,6 +418,34 @@ describe('#actions', () => {
   });
 
   describe('#updateMessage', () => {
+    it('updates reactions in place when a realtime message update contains reactions', () => {
+      const localCommit = vi.fn();
+      const message = {
+        id: 1,
+        conversation_id: 10,
+        content_attributes: { reactions: [] },
+      };
+
+      actions.updateMessage(
+        {
+          commit: localCommit,
+          dispatch: vi.fn(),
+          rootGetters: {},
+          state: {
+            allConversations: [
+              { id: 10, messages: [{ id: 1, conversation_id: 10 }] },
+            ],
+          },
+        },
+        message
+      );
+
+      expect(localCommit.mock.calls[0]).toEqual([
+        types.UPDATE_MESSAGE_REACTIONS,
+        message,
+      ]);
+    });
+
     it('refreshes loaded conversations sharing the same contact inbox source after terminal contact info updates', () => {
       const localCommit = vi.fn();
       const localDispatch = vi.fn();

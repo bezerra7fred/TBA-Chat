@@ -175,7 +175,7 @@ class Message < ApplicationRecord
       next if updated_reactions.size == current_reactions.size
 
       attributes = content_attributes.except('reactions')
-      attributes['reactions'] = updated_reactions if updated_reactions.present?
+      attributes['reactions'] = updated_reactions
       update!(content_attributes: attributes)
     end
   end

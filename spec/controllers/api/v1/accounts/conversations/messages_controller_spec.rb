@@ -499,5 +499,13 @@ RSpec.describe 'Conversation Messages API', type: :request do
       expect(response).to have_http_status(:success)
       expect(message.reload.content_attributes['reactions'].pluck('user_id')).to eq([other_agent.id])
     end
+
+    it 'keeps an empty reactions list after removing the last reaction for realtime updates' do
+      message.add_reaction(agent, '👍')
+
+      delete url, params: { emoji: '👍' }, headers: agent.create_new_auth_token, as: :json
+
+      expect(message.reload.content_attributes['reactions']).to eq([])
+    end
   end
 end
