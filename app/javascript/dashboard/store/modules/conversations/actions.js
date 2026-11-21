@@ -504,6 +504,22 @@ const actions = {
     }
   },
 
+  reactMessage: async function reactMessage(
+    { commit },
+    { conversationId, messageId, emoji }
+  ) {
+    const { data } = await MessageApi.react(conversationId, messageId, emoji);
+    commit(types.UPDATE_MESSAGE_REACTIONS, data);
+  },
+
+  unreactMessage: async function unreactMessage(
+    { commit },
+    { conversationId, messageId, emoji }
+  ) {
+    const { data } = await MessageApi.unreact(conversationId, messageId, emoji);
+    commit(types.UPDATE_MESSAGE_REACTIONS, data);
+  },
+
   deleteConversation: async ({ commit, dispatch }, conversationId) => {
     try {
       await ConversationApi.delete(conversationId);

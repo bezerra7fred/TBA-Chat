@@ -201,6 +201,8 @@ Rails.application.routes.draw do
                 member do
                   post :translate
                   post :retry
+                  post :reactions, action: :create_reaction
+                  delete :reactions, action: :destroy_reaction
                 end
               end
               resource :contact_info_request, only: [:show, :create]

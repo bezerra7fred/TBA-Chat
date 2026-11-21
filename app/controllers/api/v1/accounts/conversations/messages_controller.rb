@@ -54,6 +54,28 @@ class Api::V1::Accounts::Conversations::MessagesController < Api::V1::Accounts::
     render_could_not_create_error(e.details.presence || e.message)
   end
 
+  def create_reaction
+    return head :forbidden unless Current.user
+
+    emoji = permitted_reaction_emoji
+    return unless emoji
+
+    @message = message
+    @message.add_reaction(Current.user, emoji)
+    render :update
+  end
+
+  def destroy_reaction
+    return head :forbidden unless Current.user
+
+    emoji = permitted_reaction_emoji
+    return unless emoji
+
+    @message = message
+    @message.remove_reaction(Current.user, emoji)
+    render :update
+  end
+
   private
 
   def translation_provider
@@ -90,6 +112,14 @@ class Api::V1::Accounts::Conversations::MessagesController < Api::V1::Accounts::
 
   def permitted_params
     params.permit(:id, :target_language, :status, :external_error)
+  end
+
+  def permitted_reaction_emoji
+    emoji = params[:emoji]
+    return emoji if emoji.is_a?(String) && Message::REACTION_EMOJIS.include?(emoji)
+
+    render json: { error: 'Invalid reaction' }, status: :unprocessable_entity
+    nil
   end
 
   def already_translated_content_available?

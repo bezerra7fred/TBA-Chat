@@ -113,6 +113,20 @@ class MessageApi extends ApiClient {
     return axios.delete(`${this.url}/${conversationID}/messages/${messageId}`);
   }
 
+  react(conversationId, messageId, emoji) {
+    return axios.post(
+      `${this.url}/${conversationId}/messages/${messageId}/reactions`,
+      { emoji }
+    );
+  }
+
+  unreact(conversationId, messageId, emoji) {
+    return axios.delete(
+      `${this.url}/${conversationId}/messages/${messageId}/reactions`,
+      { params: { emoji } }
+    );
+  }
+
   retry(conversationID, messageId) {
     return axios.post(
       `${this.url}/${conversationID}/messages/${messageId}/retry`

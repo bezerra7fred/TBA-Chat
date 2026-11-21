@@ -46,6 +46,7 @@ import WhatsappFlowResponseBubble from './bubbles/WhatsappFlowResponse.vue';
 import WhatsappReferral from './bubbles/Text/WhatsappReferral.vue';
 
 import MessageError from './MessageError.vue';
+import MessageReactions from './MessageReactions.vue';
 import ForwardEmailPanel from './forward/ForwardEmailPanel.vue';
 import ForwardedEmailBanner from './forward/ForwardedEmailBanner.vue';
 import ContextMenu from 'dashboard/modules/conversations/components/MessageContextMenu.vue';
@@ -633,21 +634,34 @@ provideMessageContext({
         <Avatar v-bind="avatarInfo" :size="24" />
       </div>
       <div
-        class="[grid-area:bubble] flex min-w-0"
+        class="[grid-area:bubble] flex min-w-0 flex-col gap-1"
         :class="{
-          'ltr:ml-8 rtl:mr-8 justify-end': orientation === ORIENTATION.RIGHT,
-          'ltr:mr-8 rtl:ml-8': orientation === ORIENTATION.LEFT && !shouldShowAvatar,
-          'flex-col items-start gap-2':
-            shouldShowWhatsappReferral || isForwardedEmail,
+          'items-end': orientation === ORIENTATION.RIGHT,
+          'items-start': orientation === ORIENTATION.LEFT,
         }"
         @contextmenu="openContextMenu($event)"
       >
-        <WhatsappReferral
-          v-if="shouldShowWhatsappReferral"
-          :referral="contentAttributes.referral"
+        <div
+          class="flex min-w-0"
+          :class="{
+            'ltr:ml-8 rtl:mr-8 justify-end': orientation === ORIENTATION.RIGHT,
+            'ltr:mr-8 rtl:ml-8': orientation === ORIENTATION.LEFT && !shouldShowAvatar,
+            'flex-col items-start gap-2':
+              shouldShowWhatsappReferral || isForwardedEmail,
+          }"
+        >
+          <WhatsappReferral
+            v-if="shouldShowWhatsappReferral"
+            :referral="contentAttributes.referral"
+          />
+          <ForwardedEmailBanner v-if="isForwardedEmail" />
+          <Component :is="componentToRender" />
+        </div>
+        <MessageReactions
+          :message-id="props.id"
+          :conversation-id="props.conversationId"
+          :reactions="contentAttributes.reactions"
         />
-        <ForwardedEmailBanner v-if="isForwardedEmail" />
-        <Component :is="componentToRender" />
       </div>
       <MessageError
         v-if="contentAttributes.externalError"

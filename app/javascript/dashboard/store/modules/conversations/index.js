@@ -265,6 +265,18 @@ export const mutations = {
     }
   },
 
+  [types.UPDATE_MESSAGE_REACTIONS]({ allConversations }, message) {
+    const conversation = allConversations.find(
+      item => item.id === message.conversation_id
+    );
+    const messageIndex = conversation?.messages?.findIndex(
+      item => item.id === message.id
+    );
+    if (messageIndex === undefined || messageIndex < 0) return;
+
+    conversation.messages[messageIndex] = message;
+  },
+
   [types.SET_AUTO_TRANSLATING](_state, { locale, messageIds, translating }) {
     _state.autoTranslating[locale] ??= {};
     messageIds.forEach(id => {

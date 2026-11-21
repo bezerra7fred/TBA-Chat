@@ -44,6 +44,7 @@ class Message < ApplicationRecord
   include MessageFilterHelpers
   include Liquidable
   NUMBER_OF_PERMITTED_ATTACHMENTS = 15
+  REACTION_EMOJIS = %w[👍 ❤️ 😂 😮 😢 🙏 🔥 🎉].freeze
 
   TEMPLATE_PARAMS_SCHEMA = {
     'type': 'object',
@@ -145,6 +146,38 @@ class Message < ApplicationRecord
 
   def channel_token
     @token ||= inbox.channel.try(:page_access_token)
+  end
+
+  def add_reaction(user, emoji)
+    with_lock do
+      current_reactions = Array(content_attributes['reactions'])
+      already_reacted = current_reactions.any? do |reaction|
+        reaction.is_a?(Hash) && reaction['user_id'].to_s == user.id.to_s && reaction['emoji'] == emoji
+      end
+      next if already_reacted
+
+      reaction = {
+        'emoji' => emoji,
+        'user_id' => user.id,
+        'user_name' => user.name,
+        'user_avatar_url' => user.avatar_url
+      }
+      update!(content_attributes: content_attributes.merge('reactions' => current_reactions + [reaction]))
+    end
+  end
+
+  def remove_reaction(user, emoji)
+    with_lock do
+      current_reactions = Array(content_attributes['reactions'])
+      updated_reactions = current_reactions.reject do |reaction|
+        reaction.is_a?(Hash) && reaction['user_id'].to_s == user.id.to_s && reaction['emoji'] == emoji
+      end
+      next if updated_reactions.size == current_reactions.size
+
+      attributes = content_attributes.except('reactions')
+      attributes['reactions'] = updated_reactions if updated_reactions.present?
+      update!(content_attributes: attributes)
+    end
   end
 
   def push_event_data
