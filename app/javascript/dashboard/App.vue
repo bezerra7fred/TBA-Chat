@@ -175,6 +175,10 @@ export default {
           return;
         }
 
+        // The contact-conversations endpoint already returns the complete
+        // conversation payload. Seed it before navigation so the view can
+        // render immediately instead of issuing a second `show` request.
+        await this.store.dispatch('seedConversation', conversation);
         await this.router.push({
           name: 'inbox_conversation',
           params: {

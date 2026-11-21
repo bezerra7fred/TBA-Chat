@@ -238,16 +238,11 @@ const openPhoneContactInWhatsappComposer = async event => {
     }
     if (!contact?.id) return;
 
-    // Mirror the modal's "Via" options and choose the inbox labelled
-    // whatsapp, including custom API inboxes and native WhatsApp channels.
-    await store.dispatch('inboxes/get');
+    // The contactable-inboxes response already contains the exact source ID
+    // used by the modal, so avoid an extra full inbox-list request here.
     const contactableInboxes = await fetchContactableInboxes(contact.id);
-    const mergedContactableInboxes = mergeInboxDetails(
-      contactableInboxes,
-      inboxesList.value
-    );
     const whatsappInbox = findWhatsAppInboxOption(
-      buildContactableInboxesList(mergedContactableInboxes)
+      buildContactableInboxesList(contactableInboxes)
     );
     if (!whatsappInbox) {
       useAlert(t('CONTACT_PANEL.PHONE_CONTACT_NO_CONVERSATION'));
@@ -269,6 +264,9 @@ const openPhoneContactInWhatsappComposer = async event => {
       }
     );
 
+    // The create response is also a complete conversation payload. Put it in
+    // the store before navigation to avoid a redundant conversation fetch.
+    await store.dispatch('seedConversation', conversation);
     await router.push({
       name: 'inbox_conversation',
       params: {

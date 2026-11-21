@@ -40,6 +40,7 @@ jobs:
           pnpm exec vitest run
           app/javascript/shared/helpers/specs/MessageFormatter.spec.js
           app/javascript/dashboard/store/modules/specs/conversations/helpers.spec.js
+          app/javascript/dashboard/store/modules/specs/conversations/actions.spec.js
           app/javascript/dashboard/store/modules/specs/conversations/getters.spec.js
           app/javascript/dashboard/store/modules/specs/contactConversations/actions.spec.js
           app/javascript/dashboard/helper/AudioAlerts/specs/faviconHelper.spec.js

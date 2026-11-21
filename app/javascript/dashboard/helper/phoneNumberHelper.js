@@ -35,7 +35,8 @@ export const getPhoneNumberSearchTerms = value => {
   const normalized = normalizePhoneNumber(value);
   if (!normalized) return [];
 
-  const terms = [input, normalized, digitsOnly(normalized)];
+  const normalizedDigits = digitsOnly(normalized);
+  const terms = [normalizedDigits, normalized, input];
   // Some older contacts were saved as national numbers without +55.
   if (normalized.startsWith('+55')) {
     terms.push(normalized.slice(3));

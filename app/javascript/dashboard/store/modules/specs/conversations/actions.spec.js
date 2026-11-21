@@ -167,6 +167,29 @@ describe('#actions', () => {
     );
   });
 
+  describe('#seedConversation', () => {
+    it('seeds the conversation, contact, and labels without an API request', () => {
+      vi.clearAllMocks();
+      const conversation = {
+        id: 42,
+        labels: ['support'],
+        meta: { sender: { id: 7, name: 'Contact 7' } },
+      };
+
+      actions.seedConversation({ commit, dispatch }, conversation);
+
+      expect(commit.mock.calls).toEqual([
+        [types.SET_ALL_CONVERSATION, [conversation]],
+        ['contacts/SET_CONTACT_ITEM', conversation.meta.sender],
+      ]);
+      expect(dispatch).toHaveBeenCalledWith(
+        'conversationLabels/setConversationLabel',
+        { id: conversation.id, data: conversation.labels }
+      );
+      expect(axios.get).not.toHaveBeenCalled();
+    });
+  });
+
   describe('#getConversation', () => {
     it('sends correct actions if API is success', async () => {
       axios.get.mockResolvedValue({
