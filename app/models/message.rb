@@ -183,9 +183,7 @@ class Message < ApplicationRecord
     @sender_data = sender.is_a?(AgentBot) ? sender.push_event_data(inbox) : sender&.push_event_data
   end
 
-  def sender_data=(data)
-    @sender_data = data
-  end
+  attr_writer :sender_data
 
   def webhook_push_event_data
     push_event_data.merge(
