@@ -1,9 +1,7 @@
 name: Migration Version Check
 
 on:
-  pull_request:
-    paths:
-      - 'db/migrate/**'
+  workflow_dispatch:
 
 concurrency:
   group: pr-${{ github.workflow }}-${{ github.head_ref }}

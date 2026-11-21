@@ -8,7 +8,7 @@ defaults: &defaults
   working_directory: ~/build
   machine:
     image: ubuntu-2204:2024.05.1
-  resource_class: large
+  resource_class: medium
   environment:
     RAILS_LOG_TO_STDOUT: false
     COVERAGE: true
@@ -146,7 +146,7 @@ jobs:
   # Backend tests with parallelization
   backend-tests:
     <<: *defaults
-    parallelism: 18
+    parallelism: 4
     steps:
       - checkout
       - node/install:
@@ -311,6 +311,10 @@ jobs:
                               --out ~/tmp/test-results/rspec.xml \
                               -- $TESTS
           no_output_timeout: 30m
+          environment:
+            ACTIVE_RECORD_ENCRYPTION_PRIMARY_KEY: test_key_a6cde8f7b9c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7
+            ACTIVE_RECORD_ENCRYPTION_DETERMINISTIC_KEY: test_key_b7def9a8c0d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d8
+            ACTIVE_RECORD_ENCRYPTION_KEY_DERIVATION_SALT: test_salt_c8efa0b9d1e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d9
 
       # Store test results for better splitting in future runs
       - store_test_results:
@@ -360,9 +364,138 @@ jobs:
           command: |
             echo "All main jobs passed; build job kept only for GitHub required check compatibility."
 
+  pr-checks:
+    <<: *defaults
+    environment:
+      PR_TITLE: "<< pipeline.event.github.pull_request.title >>"
+      PR_BASE_SHA: "<< pipeline.event.github.pull_request.base.sha >>"
+    steps:
+      - checkout
+      - run:
+          name: Validate PR title
+          command: |
+            if [[ ! "$PR_TITLE" =~ ^(build|chore|ci|docs|feat|fix|perf|refactor|revert|style|test)(\([^)]+\))?(!)?:\ .+ ]]; then
+              echo "PR title must use Conventional Commits format, for example feat(messages): add reactions"
+              exit 1
+            fi
+      - run:
+          name: Check migration versions
+          command: |
+            git fetch origin "$PR_BASE_SHA"
+            rounded=$(git diff --name-only --diff-filter=AR "$PR_BASE_SHA"...HEAD -- db/migrate | grep -E '^db/migrate/[0-9]{10}0000_' || true)
+            if [ -n "$rounded" ]; then
+              echo "Rounded migration versions collide across branches. Regenerate with 'bundle exec rails g migration':"
+              echo "$rounded"
+              exit 1
+            fi
+            duplicates=$(ls db/migrate | cut -d_ -f1 | sort | uniq -d)
+            if [ -n "$duplicates" ]; then
+              echo "Duplicate migration versions break db:migrate:"
+              echo "$duplicates"
+              exit 1
+            fi
+      - run:
+          name: Check logging percentage in changed Ruby files
+          command: |
+            git fetch origin "$PR_BASE_SHA"
+            git diff --name-only "$PR_BASE_SHA"...HEAD -- '*.rb' ':!*_spec.rb' | while IFS= read -r file; do
+              [ -f "$file" ] || continue
+              total_lines=$(wc -l < "$file")
+              log_lines=$(grep -c 'Rails\.logger' "$file" || true)
+              if [ "$total_lines" -gt 0 ]; then
+                percentage=$(( (100 * log_lines + total_lines / 2) / total_lines ))
+              else
+                percentage=0
+              fi
+              if [ "$percentage" -lt 5 ]; then
+                echo "Error: Rails.logger lines are below 5% in $file ($percentage%)."
+                exit 1
+              fi
+            done
+
+  size-limit:
+    <<: *defaults
+    steps:
+      - checkout
+      - run:
+          name: Install build system dependencies
+          command: |
+            sudo apt-get update
+            DEBIAN_FRONTEND=noninteractive sudo apt-get install -y \
+              libpq-dev \
+              build-essential \
+              git \
+              curl \
+              libssl-dev \
+              zlib1g-dev \
+              libreadline-dev \
+              libyaml-dev \
+              openjdk-11-jdk \
+              jq \
+              software-properties-common \
+              ca-certificates \
+              imagemagick \
+              libxml2-dev \
+              libxslt1-dev \
+              file \
+              g++ \
+              gcc \
+              autoconf \
+              gnupg2 \
+              patch \
+              ruby-dev \
+              liblzma-dev \
+              libgmp-dev \
+              libncurses5-dev \
+              libffi-dev \
+              libgdbm6 \
+              libgdbm-dev \
+              libvips
+      - run:
+          name: Install Ruby and dependencies
+          command: |
+            gpg --keyserver hkp://keyserver.ubuntu.com --recv-keys 409B6B1796C275462A1703113804BB82D39DC0E3 7D2BAF1CF37B13E2069D6956105BD0E739499BDB
+            \curl -sSL https://get.rvm.io | bash -s stable
+            echo 'source ~/.rvm/scripts/rvm' >> $BASH_ENV
+            source ~/.rvm/scripts/rvm
+            rvm install "3.4.4"
+            rvm use 3.4.4 --default
+            gem install bundler -v 2.5.16
+            bundle install
+      - node/install:
+          node-version: '24.22.1'
+      - node/install-pnpm:
+          version: '10.2.0'
+      - node/install-packages:
+          pkg-manager: pnpm
+          override-ci-command: pnpm i
+      - run:
+          name: Create example environment
+          command: cp .env.example .env
+      - run:
+          name: Compile production assets
+          command: bundle exec rake assets:precompile
+          environment:
+            RAILS_ENV: production
+      - run:
+          name: Check asset size
+          command: pnpm run size
+
+  docker-build:
+    <<: *defaults
+    steps:
+      - checkout
+      - run:
+          name: Build multi-architecture Docker image
+          command: |
+            docker run --privileged --rm tonistiigi/binfmt --install amd64,arm64
+            docker buildx create --use
+            docker buildx build --platform linux/amd64,linux/arm64 --file docker/Dockerfile --output type=oci,dest=/tmp/chatwoot-test-image.tar .
+
 workflows:
   version: 2
   build:
+    when: pipeline.event.name == "push" or pipeline.event.name == "pull_request"
     jobs:
       - lint
       - frontend-tests
@@ -375,3 +508,15 @@ workflows:
           requires:
             - lint
             - coverage
+  pull-request-checks:
+    when: pipeline.event.name == "pull_request"
+    jobs:
+      - pr-checks
+  size-limit:
+    when: pipeline.event.name == "pull_request" and (pipeline.event.github.pull_request.base.ref == "develop" or pipeline.event.github.pull_request.base.ref == "main")
+    jobs:
+      - size-limit
+  docker-build:
+    when: pipeline.event.name == "pull_request" and (pipeline.event.github.pull_request.base.ref == "develop" or pipeline.event.github.pull_request.base.ref == "main")
+    jobs:
+      - docker-build
