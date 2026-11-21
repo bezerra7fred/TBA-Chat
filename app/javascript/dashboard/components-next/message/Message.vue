@@ -520,8 +520,16 @@ const currentChat = useMapGetter('getSelectedChat');
 
 const avatarInfo = computed(() => {
   if (props.contentAttributes?.externalEcho) {
-    const { name, avatar_url, channel_type, medium, voice_enabled } = inbox.value;
-    const iconName = avatar_url ? null : getInboxIconByType(channel_type, medium, 'fill', voice_enabled);
+    const {
+      name,
+      avatar_url,
+      channel_type,
+      medium,
+      voice_enabled,
+    } = inbox.value;
+    const iconName = avatar_url
+      ? null
+      : getInboxIconByType(channel_type, medium, 'fill', voice_enabled);
     return {
       name: iconName ? '' : name || t('CONVERSATION.NATIVE_APP'),
       src: avatar_url || '',
@@ -533,10 +541,19 @@ const avatarInfo = computed(() => {
   const { name, type, avatarUrl, thumbnail, avatar_url } = sender || {};
 
   // If sender is contact/client or not present, fallback to currentChat contact avatar
-  if (!sender || type === 'contact' || props.messageType === MESSAGE_TYPES.INCOMING) {
-    const chatContact = currentChat.value?.meta?.sender || currentChat.value?.contact || {};
+  if (
+    !sender ||
+    type === 'contact' ||
+    props.messageType === MESSAGE_TYPES.INCOMING
+  ) {
+    const chatContact =
+      currentChat.value?.meta?.sender || currentChat.value?.contact || {};
     return {
-      name: name || chatContact.name || chatContact.phone_number || t('CONVERSATION.BOT'),
+      name:
+        name ||
+        chatContact.name ||
+        chatContact.phone_number ||
+        t('CONVERSATION.BOT'),
       src: getMessageAvatarUrl({
         additionalAttributes: props.additionalAttributes,
         sender,

@@ -88,7 +88,7 @@ export default {
 
 <template>
   <div
-    class="flex flex-col w-full min-h-screen py-20 bg-cover bg-center bg-no-repeat sm:px-6 lg:px-8" style="background-image: url('/brand-assets/background-wallpaper.webp');"
+    class="flex flex-col w-full min-h-screen py-20 bg-cover bg-center bg-no-repeat bg-[url('/brand-assets/background-wallpaper.webp')] sm:px-6 lg:px-8"
   >
     <form
       class="bg-white shadow sm:mx-auto sm:w-full sm:max-w-lg dark:bg-n-solid-2 p-11 sm:shadow-lg sm:rounded-lg"

@@ -76,7 +76,7 @@ gem 'faraday_middleware-aws-sigv4'
 ##--- gems for server & infra configuration ---##
 gem 'dotenv-rails', '>= 3.0.0'
 gem 'foreman'
-gem 'puma', '~> 7.2', '>= 7.2.1'
+gem 'puma', '~> 7.2.2'
 gem 'vite_rails'
 # metrics on heroku
 gem 'barnes'
@@ -186,7 +186,7 @@ gem 'omniauth-oauth2'
 gem 'audited', '~> 5.4', '>= 5.4.1'
 
 # need for google auth
-gem 'omniauth', '>= 2.1.2'
+gem 'omniauth', '>= 2.2.0'
 gem 'omniauth-saml'
 gem 'omniauth-google-oauth2', '>= 1.1.3'
 gem 'omniauth-rails_csrf_protection', '~> 1.0', '>= 1.0.2'

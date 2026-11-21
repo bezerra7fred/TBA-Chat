@@ -123,6 +123,9 @@ jobs:
           rm -rf enterprise
           rm -rf spec/enterprise
 
+      - name: Build Vite test assets
+        run: bin/vite build --clear --mode=test
+
       - name: Create database
         run: bundle exec rake db:create
 

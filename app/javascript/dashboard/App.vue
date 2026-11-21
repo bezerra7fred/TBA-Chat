@@ -132,27 +132,25 @@ export default {
         let contact = null;
         const searchTerms = getPhoneNumberSearchTerms(phoneNumber);
 
-        for (const query of searchTerms) {
-          let page = 1;
-          let hasMore = true;
+        const findContact = async (searchTermIndex, page = 1) => {
+          if (searchTermIndex >= searchTerms.length) return null;
+          if (page > 5) return findContact(searchTermIndex + 1);
 
-          while (hasMore && page <= 5) {
-            const {
-              data: { payload = [], meta = {} },
-            } = await ContactAPI.search(query, page);
-            contact = payload.find(
-              candidate =>
-                normalizePhoneNumber(candidate.phone_number) ===
-                normalizedNumber
-            );
-            if (contact) break;
+          const {
+            data: { payload = [], meta = {} },
+          } = await ContactAPI.search(searchTerms[searchTermIndex], page);
+          const match = payload.find(
+            candidate =>
+              normalizePhoneNumber(candidate.phone_number) === normalizedNumber
+          );
+          if (match) return match;
 
-            hasMore = Boolean(meta.has_more);
-            page += 1;
-          }
+          return meta.has_more
+            ? findContact(searchTermIndex, page + 1)
+            : findContact(searchTermIndex + 1);
+        };
 
-          if (contact) break;
-        }
+        contact = await findContact(0);
 
         if (!contact) {
           const composeEvent = new CustomEvent(

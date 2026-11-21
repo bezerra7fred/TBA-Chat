@@ -256,18 +256,15 @@ const openPhoneContactInWhatsappComposer = async event => {
 
     // Create an empty conversation and open it directly. The agent can start
     // typing in the reply box; no message is sent as part of this request.
-    const conversation = await store.dispatch(
-      'contactConversations/create',
-      {
-        params: {
-          contactId: Number(contact.id),
-          inboxId: whatsappInbox.id,
-          sourceId: whatsappInbox.sourceId,
-          assigneeId: currentUser.value?.id,
-        },
-        isFromWhatsApp: false,
-      }
-    );
+    const conversation = await store.dispatch('contactConversations/create', {
+      params: {
+        contactId: Number(contact.id),
+        inboxId: whatsappInbox.id,
+        sourceId: whatsappInbox.sourceId,
+        assigneeId: currentUser.value?.id,
+      },
+      isFromWhatsApp: false,
+    });
 
     await router.push({
       name: 'inbox_conversation',
