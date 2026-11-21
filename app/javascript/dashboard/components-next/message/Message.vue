@@ -645,7 +645,8 @@ provideMessageContext({
           class="flex min-w-0"
           :class="{
             'ltr:ml-8 rtl:mr-8 justify-end': orientation === ORIENTATION.RIGHT,
-            'ltr:mr-8 rtl:ml-8': orientation === ORIENTATION.LEFT && !shouldShowAvatar,
+            'ltr:mr-8 rtl:ml-8':
+              orientation === ORIENTATION.LEFT && !shouldShowAvatar,
             'flex-col items-start gap-2':
               shouldShowWhatsappReferral || isForwardedEmail,
           }"
