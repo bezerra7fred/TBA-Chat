@@ -102,6 +102,10 @@ jobs:
           name: Bundle audit
           command: bundle exec bundle audit update && bundle exec bundle audit check -v
 
+      - run:
+          name: Brakeman
+          command: bundle exec brakeman -q --no-pager || true
+
       # Rubocop linting
       - run:
           name: Rubocop
