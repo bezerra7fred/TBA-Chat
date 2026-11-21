@@ -5,13 +5,14 @@ ruby '3.4.4'
 ##-- base gems for rails --##
 
 gem 'rack-cors', '2.0.0', require: 'rack/cors'
-gem 'rails', '7.2.3.1'
+gem 'rails', '8.1.4.1'
+gem 'sprockets-rails', '~> 3.5'
 
 # Reduces boot times through caching; required in config/boot.rb
 gem 'bootsnap', require: false
 
 ##-- rails application helper gems --##
-gem 'acts-as-taggable-on'
+gem 'acts-as-taggable-on', '>= 13.0.0'
 gem 'attr_extras'
 gem 'browser'
 gem 'hashie'
@@ -57,12 +58,13 @@ gem 'aws-sdk-sesv2', require: false
 gem 'azure-blob', require: false
 gem 'google-cloud-storage', '>= 1.48.0', require: false
 gem 'image_processing'
+gem 'ruby-vips', '~> 2.2', '>= 2.2.1', require: false
 
 ##-- for actionmailbox --##
 gem 'aws-actionmailbox-ses', '~> 0'
 
 ##-- gems for database --#
-gem 'groupdate'
+gem 'groupdate', '>= 6.8.0'
 gem 'pg'
 gem 'redis'
 gem 'redis-namespace'
@@ -85,18 +87,17 @@ gem 'barnes'
 gem 'devise', '>= 4.9.4'
 # 2.2.3 requires Devise 5; Chatwoot remains on Devise 4 for this upgrade stack.
 gem 'devise-secure_password', '2.2.1'
-gem 'devise_token_auth', '>= 1.2.3'
-gem 'rails-i18n', '~> 7.0'
+gem 'devise_token_auth', '>= 1.3.0'
+gem 'rails-i18n', '~> 8.0.2'
 # two-factor authentication
-gem 'devise-two-factor', '>= 5.0.0'
+gem 'devise-two-factor', '>= 6.4.1'
 # authorization
 gem 'jwt', '~> 2.10', '>= 2.10.3'
 gem 'pundit'
 
 # super admin
-gem 'administrate', '>= 0.20.1'
-gem 'administrate-field-active_storage', '>= 1.0.3'
-gem 'administrate-field-belongs_to_search', '>= 0.10.0'
+gem 'administrate', '1.0.0'
+gem 'administrate-field-active_storage', '1.0.6'
 
 ##--- gems for pubsub service ---##
 # https://karolgalanciak.com/blog/2019/11/30/from-activerecord-callbacks-to-publish-slash-subscribe-pattern-and-event-driven-design/
@@ -124,7 +125,7 @@ gem 'google-cloud-translate-v3', '>= 0.7.0'
 ##-- apm and error monitoring ---#
 # loaded only when environment variables are set.
 # ref application.rb
-gem 'datadog', '~> 2.0', require: false
+gem 'datadog', '~> 2.0', '>= 2.45.0', require: false
 gem 'elastic-apm', require: false
 gem 'newrelic_rpm', require: false
 gem 'newrelic-sidekiq-metrics', '>= 1.6.2', require: false
@@ -155,7 +156,7 @@ gem 'geocoder'
 gem 'maxminddb'
 
 # to create db triggers
-gem 'hairtrigger'
+gem 'hairtrigger', '1.3.1'
 
 gem 'procore-sift'
 
@@ -183,13 +184,13 @@ gem 'lograge', '~> 0.14.0', require: false
 # worked with microsoft refresh token
 gem 'omniauth-oauth2'
 
-gem 'audited', '~> 5.4', '>= 5.4.1'
+gem 'audited', '~> 5.8'
 
 # need for google auth
 gem 'omniauth', '>= 2.2.0'
 gem 'omniauth-saml'
 gem 'omniauth-google-oauth2', '>= 1.1.3'
-gem 'omniauth-rails_csrf_protection', '~> 1.0', '>= 1.0.2'
+gem 'omniauth-rails_csrf_protection', '~> 2.0', '>= 2.0.1'
 
 ## Gems for reponse bot
 # adds cosine similarity to postgres using vector extension
@@ -266,7 +267,6 @@ group :development, :test do
   gem 'factory_bot_rails', '>= 6.4.3'
   gem 'listen'
   gem 'mock_redis'
-  gem 'pry-rails'
   gem 'rspec_junit_formatter'
   gem 'rspec-rails', '>= 6.1.5'
   gem 'rubocop', require: false
