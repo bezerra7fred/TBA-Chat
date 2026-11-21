@@ -1,7 +1,6 @@
 version: 2.1
 orbs:
   node: circleci/node@6.1.0
-  qlty-orb: qltysh/qlty-orb@0.0
 
 # Shared defaults for setup steps
 defaults: &defaults
@@ -345,11 +344,6 @@ jobs:
       - checkout
       - attach_workspace:
           at: ~/build
-
-      # Qlty coverage publish
-      - qlty-orb/coverage_publish:
-          files: |
-            coverage/frontend/lcov.info
 
       - run:
           name: List coverage directory contents
