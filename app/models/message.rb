@@ -162,7 +162,7 @@ class Message < ApplicationRecord
         'user_name' => user.name,
         'user_avatar_url' => user.avatar_url
       }
-      update!(content_attributes: content_attributes.merge('reactions' => current_reactions + [reaction]))
+      write_reactions(current_reactions + [reaction])
     end
   end
 
@@ -174,9 +174,7 @@ class Message < ApplicationRecord
       end
       next if updated_reactions.size == current_reactions.size
 
-      attributes = content_attributes.except('reactions')
-      attributes['reactions'] = updated_reactions
-      update!(content_attributes: attributes)
+      write_reactions(updated_reactions)
     end
   end
 
@@ -438,6 +436,13 @@ class Message < ApplicationRecord
       conversation.update(first_reply_created_at: created_at, waiting_since: nil)
     else
       update_waiting_since
+    end
+  end
+
+  def write_reactions(reactions)
+    update_columns(content_attributes: content_attributes.merge('reactions' => reactions))
+    self.class.current_transaction.after_commit do
+      Rails.configuration.dispatcher.dispatch(MESSAGE_REACTIONS_UPDATED, Time.zone.now, message: self)
     end
   end
 

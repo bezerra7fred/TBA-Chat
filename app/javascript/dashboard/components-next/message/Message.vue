@@ -520,13 +520,8 @@ const currentChat = useMapGetter('getSelectedChat');
 
 const avatarInfo = computed(() => {
   if (props.contentAttributes?.externalEcho) {
-    const {
-      name,
-      avatar_url,
-      channel_type,
-      medium,
-      voice_enabled,
-    } = inbox.value;
+    const { name, avatar_url, channel_type, medium, voice_enabled } =
+      inbox.value;
     const iconName = avatar_url
       ? null
       : getInboxIconByType(channel_type, medium, 'fill', voice_enabled);
@@ -676,6 +671,7 @@ provideMessageContext({
           <Component :is="componentToRender" />
         </div>
         <MessageReactions
+          v-if="!isMessageDeleted && Number.isInteger(props.id)"
           :message-id="props.id"
           :conversation-id="props.conversationId"
           :reactions="contentAttributes.reactions"

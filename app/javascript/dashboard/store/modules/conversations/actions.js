@@ -465,23 +465,7 @@ const actions = {
   },
 
   updateMessage({ commit, dispatch, rootGetters, state }, message) {
-    const contentAttributes = message.content_attributes || {};
-    const hasReactions = Object.prototype.hasOwnProperty.call(
-      contentAttributes,
-      'reactions'
-    );
-    const conversation = state.allConversations.find(
-      item => item.id === message.conversation_id
-    );
-    const hasLoadedMessage = conversation?.messages?.some(
-      item => item.id === message.id
-    );
-    commit(
-      hasReactions && hasLoadedMessage
-        ? types.UPDATE_MESSAGE_REACTIONS
-        : types.ADD_MESSAGE,
-      message
-    );
+    commit(types.ADD_MESSAGE, message);
 
     const contactInfoRequest =
       message.content_attributes?.whatsapp_contact_info;
@@ -518,6 +502,10 @@ const actions = {
     } catch (error) {
       throw new Error(error);
     }
+  },
+
+  updateMessageReactions({ commit }, message) {
+    commit(types.UPDATE_MESSAGE_REACTIONS, message);
   },
 
   reactMessage: async function reactMessage(

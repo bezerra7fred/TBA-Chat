@@ -269,12 +269,15 @@ export const mutations = {
     const conversation = allConversations.find(
       item => item.id === message.conversation_id
     );
-    const messageIndex = conversation?.messages?.findIndex(
+    const existingMessage = conversation?.messages?.find(
       item => item.id === message.id
     );
-    if (messageIndex === undefined || messageIndex < 0) return;
+    if (!existingMessage || existingMessage.content_attributes?.deleted) return;
 
-    conversation.messages[messageIndex] = message;
+    existingMessage.content_attributes = {
+      ...existingMessage.content_attributes,
+      reactions: message.content_attributes.reactions,
+    };
   },
 
   [types.SET_AUTO_TRANSLATING](_state, { locale, messageIds, translating }) {

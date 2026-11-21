@@ -30,8 +30,8 @@ describe('MessageReactions', () => {
 
   it('shows who reacted beside the emoji', () => {
     const wrapper = mountReactions([
-      { emoji: '👍', user_id: 4, user_name: 'Ana' },
-      { emoji: '👍', user_id: 5, user_name: 'Bruno' },
+      { emoji: '👍', userId: 4, userName: 'Ana' },
+      { emoji: '👍', userId: 5, userName: 'Bruno' },
     ]);
 
     expect(wrapper.text()).toContain('Ana, Bruno');
@@ -59,7 +59,7 @@ describe('MessageReactions', () => {
 
   it('removes the current agent reaction when its chip is clicked', async () => {
     const wrapper = mountReactions([
-      { emoji: '👍', user_id: 9, user_name: 'Alex' },
+      { emoji: '👍', userId: 9, userName: 'Alex' },
     ]);
 
     await wrapper.get('button[title="Alex"]').trigger('click');

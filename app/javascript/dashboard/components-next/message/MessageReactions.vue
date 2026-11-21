@@ -32,7 +32,7 @@ const groupedReactions = computed(() => {
 
 const reactionNames = group => {
   const names = group.users
-    .map(reaction => reaction.user_name)
+    .map(reaction => reaction.userName)
     .filter(Boolean)
     .join(', ');
 
@@ -43,7 +43,7 @@ const hasReacted = emoji =>
   (Array.isArray(props.reactions) ? props.reactions : []).some(
     reaction =>
       reaction?.emoji === emoji &&
-      Number(reaction.user_id) === Number(currentUserId)
+      Number(reaction.userId) === Number(currentUserId)
   );
 
 const toggleReaction = async emoji => {
@@ -76,18 +76,21 @@ const toggleReaction = async emoji => {
           : 'border-n-strong bg-n-alpha-1 hover:bg-n-alpha-2'
       "
       :title="reactionNames(group)"
+      :aria-pressed="hasReacted(group.emoji)"
       :aria-label="`${group.emoji}: ${reactionNames(group)}`"
       @click.stop="toggleReaction(group.emoji)"
     >
       <span>{{ group.emoji }}</span>
       <Avatar
         v-for="reaction in group.users.slice(0, 2)"
-        :key="reaction.user_id"
-        :name="reaction.user_name || t('CONVERSATION.REACTIONS.UNKNOWN_USER')"
-        :src="reaction.user_avatar_url || ''"
+        :key="reaction.userId"
+        :name="reaction.userName || t('CONVERSATION.REACTIONS.UNKNOWN_USER')"
+        :src="reaction.userAvatarUrl || ''"
         :size="16"
       />
-      <span class="max-w-64 whitespace-normal break-words font-medium text-n-slate-11">
+      <span
+        class="max-w-64 whitespace-normal break-words font-medium text-n-slate-11"
+      >
         {{ reactionNames(group) }}
       </span>
     </button>
@@ -116,8 +119,7 @@ const toggleReaction = async emoji => {
       :aria-expanded="isPickerOpen"
       @click.stop="isPickerOpen = !isPickerOpen"
     >
-      +
+      <span class="i-lucide-plus size-4" aria-hidden="true" />
     </button>
   </div>
 </template>
-
