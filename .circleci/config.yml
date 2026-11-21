@@ -126,6 +126,8 @@ jobs:
             wait_for_port 6379
       - run:
           name: Build Vite test assets
+          environment:
+            NODE_OPTIONS: --openssl-legacy-provider --max-old-space-size=3072
           command: bin/vite build --clear --mode=test
       - run:
           name: Create and prepare database

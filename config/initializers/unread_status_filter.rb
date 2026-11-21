@@ -15,7 +15,5 @@ module UnreadStatusFilterPatch
 end
 
 Rails.application.config.to_prepare do
-  unless ConversationFinder <= UnreadStatusFilterPatch
-    ConversationFinder.prepend(UnreadStatusFilterPatch)
-  end
+  ConversationFinder.prepend(UnreadStatusFilterPatch) unless ConversationFinder <= UnreadStatusFilterPatch
 end

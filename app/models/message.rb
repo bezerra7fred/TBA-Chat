@@ -162,7 +162,7 @@ class Message < ApplicationRecord
         'user_name' => user.name,
         'user_avatar_url' => user.avatar_url
       }
-      write_reactions(current_reactions + [reaction])
+      update!(content_attributes: content_attributes.merge('reactions' => current_reactions + [reaction]))
     end
   end
 
@@ -174,7 +174,7 @@ class Message < ApplicationRecord
       end
       next if updated_reactions.size == current_reactions.size
 
-      write_reactions(updated_reactions)
+      update!(content_attributes: content_attributes.merge('reactions' => updated_reactions))
     end
   end
 
@@ -439,19 +439,20 @@ class Message < ApplicationRecord
     end
   end
 
-  def write_reactions(reactions)
-    update_columns(content_attributes: content_attributes.merge('reactions' => reactions))
-    self.class.current_transaction.after_commit do
-      Rails.configuration.dispatcher.dispatch(MESSAGE_REACTIONS_UPDATED, Time.zone.now, message: self)
-    end
-  end
-
   def dispatch_update_event
     # ref: https://github.com/rails/rails/issues/44500
     # we want to skip the update event if the message is not updated
     return if previous_changes.blank?
+    return send_update_event unless reactions_only_updated?
 
-    send_update_event
+    Rails.configuration.dispatcher.dispatch(MESSAGE_REACTIONS_UPDATED, Time.zone.now, message: self)
+  end
+
+  def reactions_only_updated?
+    return false unless previous_changes.except('updated_at').keys == ['content_attributes']
+
+    old_attributes, new_attributes = previous_changes.fetch('content_attributes')
+    old_attributes['reactions'] != new_attributes['reactions'] && old_attributes.except('reactions') == new_attributes.except('reactions')
   end
 
   def send_reply
