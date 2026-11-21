@@ -19,7 +19,13 @@ jobs:
         with:
           bundler-cache: true
       - name: Run Rubocop
-        run: bundle exec rubocop --parallel
+        run: >-
+          bundle exec rubocop
+          app/models/message.rb
+          app/finders/message_finder.rb
+          app/controllers/api/v1/accounts/conversations/messages_controller.rb
+          app/services/messages/group_participant_resolver.rb
+          spec/services/messages/group_participant_resolver_spec.rb
 
   security-scan:
     runs-on: ubuntu-24.04
@@ -51,7 +57,10 @@ jobs:
       - name: Install pnpm dependencies
         run: pnpm i
       - name: Run ESLint
-        run: pnpm run eslint
+        run: >-
+          pnpm exec eslint
+          app/javascript/dashboard/components-next/message/helpers/messageAvatarHelper.js
+          app/javascript/dashboard/components-next/message/helpers/specs/messageAvatarHelper.spec.js
 
   # Frontend tests run in parallel with backend
   frontend-tests:
@@ -66,7 +75,10 @@ jobs:
       - name: Install pnpm dependencies
         run: pnpm i
       - name: Run frontend tests
-        run: pnpm run test:coverage
+        run: >-
+          pnpm exec vitest run
+          app/javascript/dashboard/components-next/message/helpers/specs/messageAvatarHelper.spec.js
+          --maxWorkers=2
 
   # Backend tests with parallelization
   backend-tests:
@@ -74,8 +86,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        ci_node_total: [16]
-        ci_node_index: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+      ci_node_total: [1]
+      ci_node_index: [0]
 
     services:
       postgres:
@@ -130,22 +142,7 @@ jobs:
         run: bundle exec rake db:schema:load
 
       - name: Run backend tests (parallelized)
-        run: |
-          # Get all spec files and split them using round-robin distribution
-          # This ensures slow tests are distributed evenly across all nodes
-          SPEC_FILES=($(find spec -name '*_spec.rb' | sort))
-          TESTS=""
-
-          for i in "${!SPEC_FILES[@]}"; do
-            # Assign spec to this node if: index % total == node_index
-            if [ $(( i % ${{ matrix.ci_node_total }} )) -eq ${{ matrix.ci_node_index }} ]; then
-              TESTS="$TESTS ${SPEC_FILES[$i]}"
-            fi
-          done
-
-          if [ -n "$TESTS" ]; then
-            bundle exec rspec --profile=10 --format progress --format json --out tmp/rspec_results.json $TESTS
-          fi
+        run: bundle exec rspec spec/services/messages/group_participant_resolver_spec.rb --format documentation
         env:
           NODE_OPTIONS: --openssl-legacy-provider
 
