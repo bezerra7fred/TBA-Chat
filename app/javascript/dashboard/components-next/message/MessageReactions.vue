@@ -30,11 +30,14 @@ const groupedReactions = computed(() => {
   return [...groups.values()];
 });
 
-const reactionNames = group =>
-  group.users
+const reactionNames = group => {
+  const names = group.users
     .map(reaction => reaction.user_name)
     .filter(Boolean)
     .join(', ');
+
+  return names || t('CONVERSATION.REACTIONS.UNKNOWN_USER');
+};
 
 const hasReacted = emoji =>
   (Array.isArray(props.reactions) ? props.reactions : []).some(
@@ -66,7 +69,7 @@ const toggleReaction = async emoji => {
       v-for="group in groupedReactions"
       :key="group.emoji"
       type="button"
-      class="flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-xs transition-colors"
+      class="flex flex-wrap items-center gap-1 rounded-full border px-1.5 py-0.5 text-xs transition-colors"
       :class="
         hasReacted(group.emoji)
           ? 'border-n-brand bg-n-brand/10'
@@ -84,8 +87,8 @@ const toggleReaction = async emoji => {
         :src="reaction.user_avatar_url || ''"
         :size="16"
       />
-      <span class="max-w-32 truncate font-medium text-n-slate-11">
-        {{ reactionNames(group) || t('CONVERSATION.REACTIONS.UNKNOWN_USER') }}
+      <span class="max-w-64 whitespace-normal break-words font-medium text-n-slate-11">
+        {{ reactionNames(group) }}
       </span>
     </button>
 
@@ -117,3 +120,4 @@ const toggleReaction = async emoji => {
     </button>
   </div>
 </template>
+
