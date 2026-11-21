@@ -472,14 +472,13 @@ RSpec.describe 'Conversation Messages API', type: :request do
       post url, params: { emoji: '👍' }, headers: agent.create_new_auth_token, as: :json
 
       expect(response).to have_http_status(:success)
-      expect(message.reload.content_attributes['reactions']).to eq([
-        {
-          'emoji' => '👍',
-          'user_id' => agent.id,
-          'user_name' => agent.name,
-          'user_avatar_url' => agent.avatar_url
-        }
-      ])
+      expected_reaction = {
+        'emoji' => '👍',
+        'user_id' => agent.id,
+        'user_name' => agent.name,
+        'user_avatar_url' => agent.avatar_url
+      }
+      expect(message.reload.content_attributes['reactions']).to eq([expected_reaction])
       expect(response.parsed_body.dig('content_attributes', 'reactions')).to eq(message.content_attributes['reactions'])
     end
 
