@@ -669,7 +669,7 @@ GEM
     procore-sift (1.0.0)
       activerecord (>= 6.1)
     public_suffix (7.0.5)
-    puma (7.2.2)
+    puma (7.2.3)
       nio4r (~> 2.0)
     pundit (2.3.0)
       activesupport (>= 3.0.0)
