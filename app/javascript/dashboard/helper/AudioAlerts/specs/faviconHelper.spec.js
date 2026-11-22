@@ -27,9 +27,11 @@ describe('favicon branding', () => {
     const favicons = [createFavicon(16), createFavicon(32), createFavicon(96)];
     vi.spyOn(document, 'querySelectorAll').mockReturnValue(favicons);
     let onVisibilityChange;
-    vi.spyOn(document, 'addEventListener').mockImplementation((event, handler) => {
-      if (event === 'visibilitychange') onVisibilityChange = handler;
-    });
+    vi.spyOn(document, 'addEventListener').mockImplementation(
+      (event, handler) => {
+        if (event === 'visibilitychange') onVisibilityChange = handler;
+      }
+    );
     vi.spyOn(document, 'visibilityState', 'get').mockReturnValue('visible');
 
     initFaviconSwitcher();

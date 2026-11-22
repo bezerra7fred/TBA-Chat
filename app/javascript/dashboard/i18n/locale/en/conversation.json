@@ -605,6 +605,11 @@
     "TRANSLATED_CONTENT": "Translated Content",
     "NO_TRANSLATIONS_AVAILABLE": "No translations are available for this content"
   },
+  "REACTIONS": {
+    "ADD": "Add a reaction",
+    "ERROR": "Unable to update the reaction. Please try again.",
+    "UNKNOWN_USER": "Unknown user"
+  },
   "TYPING": {
     "ONE": "{user} is typing",
     "TWO": "{user} and {secondUser} are typing",

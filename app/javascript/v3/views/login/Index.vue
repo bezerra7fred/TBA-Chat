@@ -398,7 +398,7 @@ export default {
 
 <template>
   <main
-    class="flex flex-col w-full min-h-screen py-20 bg-cover bg-center bg-no-repeat sm:px-6 lg:px-8" style="background-image: url('/brand-assets/background-wallpaper.webp');"
+    class="flex flex-col w-full min-h-screen py-20 bg-cover bg-center bg-no-repeat bg-[url('/brand-assets/background-wallpaper.webp')] sm:px-6 lg:px-8"
   >
     <section class="max-w-5xl mx-auto">
       <img

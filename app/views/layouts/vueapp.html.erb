@@ -9,6 +9,7 @@
       <meta name="robots" content="noindex">
     <% end %>
     <% if @global_config['DISPLAY_MANIFEST'] %>
+      <link rel="manifest" href="/manifest.json?v=20261120">
       <meta name="msapplication-TileColor" content="#2781F6">
       <meta name="msapplication-TileImage" content="/ms-icon-144x144.png">
       <meta name="theme-color" content="#2781F6">
@@ -23,7 +24,6 @@
     <link class="favicon" rel="icon" type="image/png" sizes="96x96" href="/brand-assets/tba-favicon-96x96.png?v=20261120">
     <link rel="icon" type="image/png" sizes="192x192" href="/brand-assets/tba-favicon-192x192.png?v=20261120">
     <link rel="icon" type="image/png" sizes="512x512" href="/brand-assets/tba-favicon-512x512.png?v=20261120">
-    <link rel="manifest" href="/manifest.json?v=20261120">
     <%= csrf_meta_tags %>
     <script>
       window.chatwootConfig = {

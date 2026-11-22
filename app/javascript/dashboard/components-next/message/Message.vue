@@ -46,6 +46,7 @@ import WhatsappFlowResponseBubble from './bubbles/WhatsappFlowResponse.vue';
 import WhatsappReferral from './bubbles/Text/WhatsappReferral.vue';
 
 import MessageError from './MessageError.vue';
+import MessageReactions from './MessageReactions.vue';
 import ForwardEmailPanel from './forward/ForwardEmailPanel.vue';
 import ForwardedEmailBanner from './forward/ForwardedEmailBanner.vue';
 import ContextMenu from 'dashboard/modules/conversations/components/MessageContextMenu.vue';
@@ -519,8 +520,11 @@ const currentChat = useMapGetter('getSelectedChat');
 
 const avatarInfo = computed(() => {
   if (props.contentAttributes?.externalEcho) {
-    const { name, avatar_url, channel_type, medium, voice_enabled } = inbox.value;
-    const iconName = avatar_url ? null : getInboxIconByType(channel_type, medium, 'fill', voice_enabled);
+    const { name, avatar_url, channel_type, medium, voice_enabled } =
+      inbox.value;
+    const iconName = avatar_url
+      ? null
+      : getInboxIconByType(channel_type, medium, 'fill', voice_enabled);
     return {
       name: iconName ? '' : name || t('CONVERSATION.NATIVE_APP'),
       src: avatar_url || '',
@@ -532,10 +536,19 @@ const avatarInfo = computed(() => {
   const { name, type, avatarUrl, thumbnail, avatar_url } = sender || {};
 
   // If sender is contact/client or not present, fallback to currentChat contact avatar
-  if (!sender || type === 'contact' || props.messageType === MESSAGE_TYPES.INCOMING) {
-    const chatContact = currentChat.value?.meta?.sender || currentChat.value?.contact || {};
+  if (
+    !sender ||
+    type === 'contact' ||
+    props.messageType === MESSAGE_TYPES.INCOMING
+  ) {
+    const chatContact =
+      currentChat.value?.meta?.sender || currentChat.value?.contact || {};
     return {
-      name: name || chatContact.name || chatContact.phone_number || t('CONVERSATION.BOT'),
+      name:
+        name ||
+        chatContact.name ||
+        chatContact.phone_number ||
+        t('CONVERSATION.BOT'),
       src: getMessageAvatarUrl({
         additionalAttributes: props.additionalAttributes,
         sender,
@@ -633,21 +646,36 @@ provideMessageContext({
         <Avatar v-bind="avatarInfo" :size="24" />
       </div>
       <div
-        class="[grid-area:bubble] flex min-w-0"
+        class="[grid-area:bubble] flex min-w-0 flex-col gap-1"
         :class="{
-          'ltr:ml-8 rtl:mr-8 justify-end': orientation === ORIENTATION.RIGHT,
-          'ltr:mr-8 rtl:ml-8': orientation === ORIENTATION.LEFT && !shouldShowAvatar,
-          'flex-col items-start gap-2':
-            shouldShowWhatsappReferral || isForwardedEmail,
+          'items-end': orientation === ORIENTATION.RIGHT,
+          'items-start': orientation === ORIENTATION.LEFT,
         }"
         @contextmenu="openContextMenu($event)"
       >
-        <WhatsappReferral
-          v-if="shouldShowWhatsappReferral"
-          :referral="contentAttributes.referral"
+        <div
+          class="flex min-w-0"
+          :class="{
+            'ltr:ml-8 rtl:mr-8 justify-end': orientation === ORIENTATION.RIGHT,
+            'ltr:mr-8 rtl:ml-8':
+              orientation === ORIENTATION.LEFT && !shouldShowAvatar,
+            'flex-col items-start gap-2':
+              shouldShowWhatsappReferral || isForwardedEmail,
+          }"
+        >
+          <WhatsappReferral
+            v-if="shouldShowWhatsappReferral"
+            :referral="contentAttributes.referral"
+          />
+          <ForwardedEmailBanner v-if="isForwardedEmail" />
+          <Component :is="componentToRender" />
+        </div>
+        <MessageReactions
+          v-if="!isMessageDeleted && Number.isInteger(props.id)"
+          :message-id="props.id"
+          :conversation-id="props.conversationId"
+          :reactions="contentAttributes.reactions"
         />
-        <ForwardedEmailBanner v-if="isForwardedEmail" />
-        <Component :is="componentToRender" />
       </div>
       <MessageError
         v-if="contentAttributes.externalError"

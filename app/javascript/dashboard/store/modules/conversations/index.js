@@ -265,6 +265,21 @@ export const mutations = {
     }
   },
 
+  [types.UPDATE_MESSAGE_REACTIONS]({ allConversations }, message) {
+    const conversation = allConversations.find(
+      item => item.id === message.conversation_id
+    );
+    const existingMessage = conversation?.messages?.find(
+      item => item.id === message.id
+    );
+    if (!existingMessage || existingMessage.content_attributes?.deleted) return;
+
+    existingMessage.content_attributes = {
+      ...existingMessage.content_attributes,
+      reactions: message.content_attributes.reactions,
+    };
+  },
+
   [types.SET_AUTO_TRANSLATING](_state, { locale, messageIds, translating }) {
     _state.autoTranslating[locale] ??= {};
     messageIds.forEach(id => {

@@ -23,7 +23,9 @@ vi.mock('vue-i18n', () => ({
 vi.mock('shared/composables/useBranding', () => ({
   useBranding: () => ({
     replaceInstallationName: text =>
-      typeof text === 'string' ? text.replace(/chatwoot/gi, 'Acme Desk') : text,
+      typeof text === 'string'
+        ? text.replace(/chatwoot|tba chat/gi, 'Acme Desk')
+        : text,
   }),
 }));
 
@@ -95,6 +97,7 @@ describe('TwilioHealth', () => {
 
     expect(wrapper.text()).toContain('Acme Desk');
     expect(wrapper.text()).not.toContain('Chatwoot');
+    expect(wrapper.text()).not.toContain('TBA Chat');
   });
 
   it('drops the stale verdict when a later refresh fails', () => {

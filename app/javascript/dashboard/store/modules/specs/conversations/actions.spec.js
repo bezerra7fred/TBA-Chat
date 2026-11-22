@@ -418,6 +418,31 @@ describe('#actions', () => {
   });
 
   describe('#updateMessage', () => {
+    it('uses the regular update flow for messages that already have reactions', () => {
+      const localCommit = vi.fn();
+      const message = {
+        id: 1,
+        conversation_id: 10,
+        content_attributes: { reactions: [] },
+      };
+
+      actions.updateMessage(
+        {
+          commit: localCommit,
+          dispatch: vi.fn(),
+          rootGetters: {},
+          state: {
+            allConversations: [
+              { id: 10, messages: [{ id: 1, conversation_id: 10 }] },
+            ],
+          },
+        },
+        message
+      );
+
+      expect(localCommit).toHaveBeenCalledWith(types.ADD_MESSAGE, message);
+    });
+
     it('refreshes loaded conversations sharing the same contact inbox source after terminal contact info updates', () => {
       const localCommit = vi.fn();
       const localDispatch = vi.fn();

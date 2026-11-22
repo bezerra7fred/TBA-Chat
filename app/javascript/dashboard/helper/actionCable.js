@@ -42,6 +42,7 @@ class ActionCableConnector extends BaseActionCableConnector {
       'monitor.updated': this.onMonitorUpdated,
       'message.created': this.onMessageCreated,
       'message.updated': this.onMessageUpdated,
+      'message.reactions_updated': this.onMessageReactionsUpdated,
       'conversation.created': this.onConversationCreated,
       'conversation.bot_handoff': this.onConversationBotHandoff,
       'conversation.status_changed': this.onStatusChange,
@@ -98,6 +99,10 @@ class ActionCableConnector extends BaseActionCableConnector {
 
   onMessageUpdated = data => {
     this.app.$store.dispatch('updateMessage', data);
+  };
+
+  onMessageReactionsUpdated = data => {
+    this.app.$store.dispatch('updateMessageReactions', data);
   };
 
   onPresenceUpdate = data => {

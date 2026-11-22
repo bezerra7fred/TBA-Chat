@@ -44,6 +44,7 @@ class Message < ApplicationRecord
   include MessageFilterHelpers
   include Liquidable
   NUMBER_OF_PERMITTED_ATTACHMENTS = 15
+  REACTION_EMOJIS = %w[👍 ❤️ 😂 😮 😢 🙏 🔥 🎉].freeze
 
   TEMPLATE_PARAMS_SCHEMA = {
     'type': 'object',
@@ -85,8 +86,8 @@ class Message < ApplicationRecord
   # Transient flag used to skip waiting_since clearing for specific bot/system messages.
   attr_accessor :preserve_waiting_since
 
-  enum message_type: { incoming: 0, outgoing: 1, activity: 2, template: 3 }
-  enum content_type: {
+  enum :message_type, { incoming: 0, outgoing: 1, activity: 2, template: 3 }
+  enum :content_type, {
     text: 0,
     input_text: 1,
     input_textarea: 2,
@@ -101,7 +102,7 @@ class Message < ApplicationRecord
     sticker: 11,
     voice_call: 12
   }
-  enum status: { sent: 0, delivered: 1, read: 2, failed: 3 }
+  enum :status, { sent: 0, delivered: 1, read: 2, failed: 3 }
   # [:submitted_email, :items, :submitted_values] : Used for bot message types
   # [:email] : Used by conversation_continuity incoming email messages
   # [:in_reply_to] : Used to reply to a particular tweet in threads
@@ -145,6 +146,36 @@ class Message < ApplicationRecord
 
   def channel_token
     @token ||= inbox.channel.try(:page_access_token)
+  end
+
+  def add_reaction(user, emoji)
+    with_lock do
+      current_reactions = Array(content_attributes['reactions'])
+      already_reacted = current_reactions.any? do |reaction|
+        reaction.is_a?(Hash) && reaction['user_id'].to_s == user.id.to_s && reaction['emoji'] == emoji
+      end
+      next if already_reacted
+
+      reaction = {
+        'emoji' => emoji,
+        'user_id' => user.id,
+        'user_name' => user.name,
+        'user_avatar_url' => user.avatar_url
+      }
+      update!(content_attributes: content_attributes.merge('reactions' => current_reactions + [reaction]))
+    end
+  end
+
+  def remove_reaction(user, emoji)
+    with_lock do
+      current_reactions = Array(content_attributes['reactions'])
+      updated_reactions = current_reactions.reject do |reaction|
+        reaction.is_a?(Hash) && reaction['user_id'].to_s == user.id.to_s && reaction['emoji'] == emoji
+      end
+      next if updated_reactions.size == current_reactions.size
+
+      update!(content_attributes: content_attributes.merge('reactions' => updated_reactions))
+    end
   end
 
   def push_event_data
@@ -412,8 +443,16 @@ class Message < ApplicationRecord
     # ref: https://github.com/rails/rails/issues/44500
     # we want to skip the update event if the message is not updated
     return if previous_changes.blank?
+    return send_update_event unless reactions_only_updated?
 
-    send_update_event
+    Rails.configuration.dispatcher.dispatch(MESSAGE_REACTIONS_UPDATED, Time.zone.now, message: self)
+  end
+
+  def reactions_only_updated?
+    return false unless previous_changes.except('updated_at').keys == ['content_attributes']
+
+    old_attributes, new_attributes = previous_changes.fetch('content_attributes')
+    old_attributes['reactions'] != new_attributes['reactions'] && old_attributes.except('reactions') == new_attributes.except('reactions')
   end
 
   def send_reply

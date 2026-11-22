@@ -451,4 +451,61 @@ RSpec.describe 'Conversation Messages API', type: :request do
       end
     end
   end
+
+  describe 'message reactions' do
+    let!(:conversation) { create(:conversation, account: account) }
+    let!(:message) { create(:message, conversation: conversation, account: account) }
+    let(:agent) { create(:user, account: account, role: :agent) }
+    let(:url) do
+      "/api/v1/accounts/#{account.id}/conversations/#{conversation.display_id}/messages/#{message.id}/reactions"
+    end
+
+    before { create(:inbox_member, inbox: conversation.inbox, user: agent) }
+
+    it 'requires an authenticated agent to react' do
+      post url, params: { emoji: '👍' }, as: :json
+
+      expect(response).to have_http_status(:unauthorized)
+    end
+
+    it 'stores the reacting agent with the emoji' do
+      post url, params: { emoji: '👍' }, headers: agent.create_new_auth_token, as: :json
+
+      expect(response).to have_http_status(:success)
+      expected_reaction = {
+        'emoji' => '👍',
+        'user_id' => agent.id,
+        'user_name' => agent.name,
+        'user_avatar_url' => agent.avatar_url
+      }
+      expect(message.reload.content_attributes['reactions']).to eq([expected_reaction])
+      expect(response.parsed_body.dig('content_attributes', 'reactions')).to eq(message.content_attributes['reactions'])
+    end
+
+    it 'does not store unsupported emojis' do
+      post url, params: { emoji: '🚀' }, headers: agent.create_new_auth_token, as: :json
+
+      expect(response).to have_http_status(:unprocessable_entity)
+      expect(message.reload.content_attributes['reactions']).to be_nil
+    end
+
+    it 'removes only the authenticated agent reaction' do
+      other_agent = create(:user, account: account, role: :agent)
+      message.add_reaction(other_agent, '👍')
+      message.add_reaction(agent, '👍')
+
+      delete url, params: { emoji: '👍' }, headers: agent.create_new_auth_token, as: :json
+
+      expect(response).to have_http_status(:success)
+      expect(message.reload.content_attributes['reactions'].pluck('user_id')).to eq([other_agent.id])
+    end
+
+    it 'keeps an empty reactions list after removing the last reaction for realtime updates' do
+      message.add_reaction(agent, '👍')
+
+      delete url, params: { emoji: '👍' }, headers: agent.create_new_auth_token, as: :json
+
+      expect(message.reload.content_attributes['reactions']).to eq([])
+    end
+  end
 end

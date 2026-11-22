@@ -5,15 +5,10 @@ require 'rails_helper'
 RSpec.describe 'Devise::Mailer' do
   describe 'confirmation_instructions with Enterprise features' do
     let(:account) { create(:account) }
-    let!(:confirmable_user) { create(:user, inviter: inviter_val, account: account) }
+    let!(:confirmable_user) { create(:user, inviter: inviter_val, account: account, skip_confirmation: false) }
     let(:inviter_val) { nil }
-    let(:mail) { Devise::Mailer.confirmation_instructions(confirmable_user.reload, nil, {}) }
+    let(:mail) { Devise::Mailer.confirmation_instructions(confirmable_user, confirmable_user.confirmation_token) }
     let(:mail_body) { CGI.unescapeHTML(mail.body.to_s) }
-
-    before do
-      confirmable_user.update!(confirmed_at: nil)
-      confirmable_user.send(:generate_confirmation_token)
-    end
 
     context 'when brand name is intentionally blank' do
       before do
@@ -93,7 +88,7 @@ RSpec.describe 'Devise::Mailer' do
 
         it 'still shows confirmation link for email verification' do
           expect(mail_body).to include('Confirm your new email address')
-          expect(mail.body).to include('app/auth/confirmation?confirmation_token')
+          expect(mail.body).to include("app/auth/confirmation?confirmation_token=#{confirmable_user.confirmation_token}")
           expect(confirmable_user.unconfirmed_email.blank?).to be false
         end
       end
@@ -160,7 +155,7 @@ RSpec.describe 'Devise::Mailer' do
 
         it 'shows confirmation link for email verification' do
           expect(mail_body).to include('Confirm your new email address')
-          expect(mail.body).to include('app/auth/confirmation?confirmation_token')
+          expect(mail.body).to include("app/auth/confirmation?confirmation_token=#{confirmable_user.confirmation_token}")
           expect(confirmable_user.unconfirmed_email.blank?).to be false
         end
       end

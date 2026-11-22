@@ -17,16 +17,19 @@ const isWhatsAppChannel = ({ channelType, medium, phoneNumber }) =>
 export const findWhatsAppInboxOption = inboxOptions => {
   const exactNameMatch = inboxOptions.find(
     option =>
-      String(option.name || '').trim().toLowerCase() === 'whatsapp' ||
-      String(option.label || '').trim().toLowerCase() === 'whatsapp'
+      String(option.name || '')
+        .trim()
+        .toLowerCase() === 'whatsapp' ||
+      String(option.label || '')
+        .trim()
+        .toLowerCase() === 'whatsapp'
   );
   if (exactNameMatch) return exactNameMatch;
 
   return (
     inboxOptions.find(isWhatsAppChannel) ||
     inboxOptions.find(
-      option =>
-        includesWhatsApp(option.name) || includesWhatsApp(option.label)
+      option => includesWhatsApp(option.name) || includesWhatsApp(option.label)
     )
   );
 };

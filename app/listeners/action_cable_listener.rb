@@ -1,5 +1,6 @@
 class ActionCableListener < BaseListener
   include Events::Types
+  include MessageEvents
 
   def notification_created(event)
     notification, account, unread_count, count = extract_notification_and_account(event)
@@ -36,22 +37,6 @@ class ActionCableListener < BaseListener
     broadcast(account, tokens, ACCOUNT_CACHE_INVALIDATED, {
                 cache_keys: event.data[:cache_keys]
               })
-  end
-
-  def message_created(event)
-    message, account = extract_message_and_account(event)
-    conversation = message.conversation
-    tokens = user_tokens(account, conversation.inbox.members) + contact_tokens(conversation.contact_inbox, message)
-
-    broadcast(account, tokens, MESSAGE_CREATED, message.push_event_data)
-  end
-
-  def message_updated(event)
-    message, account = extract_message_and_account(event)
-    conversation = message.conversation
-    tokens = user_tokens(account, conversation.inbox.members) + contact_tokens(conversation.contact_inbox, message)
-
-    broadcast(account, tokens, MESSAGE_UPDATED, message.push_event_data.merge(previous_changes: event.data[:previous_changes]))
   end
 
   def first_reply_created(event)
