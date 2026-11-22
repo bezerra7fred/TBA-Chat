@@ -675,6 +675,7 @@ provideMessageContext({
           :message-id="props.id"
           :conversation-id="props.conversationId"
           :reactions="contentAttributes.reactions"
+          :align-right="orientation === ORIENTATION.RIGHT"
         />
       </div>
       <MessageError
