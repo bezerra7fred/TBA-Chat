@@ -10,9 +10,9 @@ vi.mock('vuex', () => ({ useStore: () => store }));
 vi.mock('vue-i18n', () => ({ useI18n: () => ({ t: key => key }) }));
 vi.mock('dashboard/composables', () => ({ useAlert: vi.fn() }));
 
-const mountReactions = reactions =>
+const mountReactions = (reactions, alignRight = false) =>
   mount(MessageReactions, {
-    props: { messageId: 42, conversationId: 17, reactions },
+    props: { messageId: 42, conversationId: 17, reactions, alignRight },
     global: {
       stubs: {
         Avatar: {
@@ -35,6 +35,34 @@ describe('MessageReactions', () => {
     ]);
 
     expect(wrapper.text()).toContain('Ana, Bruno');
+  });
+
+  it('shows a readable label beside the add reaction icon', () => {
+    const wrapper = mountReactions([]);
+
+    expect(
+      wrapper.get('button[aria-label="CONVERSATION.REACTIONS.ADD"]').text()
+    ).toContain('CONVERSATION.REACTIONS.LABEL');
+  });
+
+  it('opens the emoji picker toward the center of the conversation', async () => {
+    const incomingMessage = mountReactions([]);
+    await incomingMessage
+      .get('button[aria-label="CONVERSATION.REACTIONS.ADD"]')
+      .trigger('click');
+
+    expect(incomingMessage.get('.absolute.bottom-full').classes()).toContain(
+      'start-0'
+    );
+
+    const outgoingMessage = mountReactions([], true);
+    await outgoingMessage
+      .get('button[aria-label="CONVERSATION.REACTIONS.ADD"]')
+      .trigger('click');
+
+    expect(outgoingMessage.get('.absolute.bottom-full').classes()).toContain(
+      'end-0'
+    );
   });
 
   it('adds the selected emoji to the message', async () => {

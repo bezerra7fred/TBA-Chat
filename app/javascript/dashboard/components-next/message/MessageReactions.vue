@@ -115,13 +115,14 @@ const toggleReaction = async emoji => {
 
     <button
       type="button"
-      class="flex size-6 items-center justify-center rounded-full text-sm text-n-slate-11 hover:bg-n-alpha-1"
+      class="inline-flex h-6 items-center gap-1 rounded-full px-2 text-xs text-n-slate-11 hover:bg-n-alpha-1"
       :aria-label="t('CONVERSATION.REACTIONS.ADD')"
       :title="t('CONVERSATION.REACTIONS.ADD')"
       :aria-expanded="isPickerOpen"
       @click.stop="isPickerOpen = !isPickerOpen"
     >
       <span class="i-lucide-plus size-4" aria-hidden="true" />
+      <span>{{ t('CONVERSATION.REACTIONS.LABEL') }}</span>
     </button>
   </div>
 </template>

@@ -607,6 +607,7 @@
   },
   "REACTIONS": {
     "ADD": "Add a reaction",
+    "LABEL": "React",
     "ERROR": "Unable to update the reaction. Please try again.",
     "UNKNOWN_USER": "Unknown user"
   },
