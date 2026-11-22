@@ -603,6 +603,10 @@
     "TRANSLATED_CONTENT": "Conteúdo traduzido",
     "NO_TRANSLATIONS_AVAILABLE": "Nenhuma tradução está disponível para este conteúdo"
   },
+  "REACTIONS": {
+    "ADD": "Adicionar uma reação",
+    "LABEL": "Reagir"
+  },
   "TYPING": {
     "ONE": "{user} está digitando",
     "TWO": "{user} e {secondUser} estão digitando",
