@@ -9,6 +9,7 @@ const props = defineProps({
   messageId: { type: Number, required: true },
   conversationId: { type: Number, required: true },
   reactions: { type: Array, default: () => [] },
+  alignRight: { type: Boolean, default: false },
 });
 
 const quickEmojis = ['👍', '❤️', '😂', '😮', '😢', '🙏', '🔥', '🎉'];
@@ -97,7 +98,8 @@ const toggleReaction = async emoji => {
 
     <div
       v-if="isPickerOpen"
-      class="absolute bottom-full left-0 z-50 mb-1 flex items-center gap-1 rounded-full border border-n-strong bg-white px-2 py-1 shadow-xl dark:bg-n-solid-1"
+      class="absolute bottom-full z-50 mb-1 flex items-center gap-1 rounded-full border border-n-strong bg-white px-2 py-1 shadow-xl dark:bg-n-solid-1"
+      :class="alignRight ? 'end-0' : 'start-0'"
     >
       <button
         v-for="emoji in quickEmojis"
