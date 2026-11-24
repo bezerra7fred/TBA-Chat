@@ -61,13 +61,20 @@ class Api::V1::Accounts::Conversations::MessagesController < Api::V1::Accounts::
     return unless emoji
 
     @message = message
-    @message.add_reaction(Current.user, emoji)
-
-    # Send the reaction to the external channel via its native API when supported,
-    # without creating a synthetic message or routing through SendReplyJob.
     channel = @message.conversation.inbox.channel
-    channel.send_reaction(@message.conversation.contact_inbox.source_id, @message, emoji) if channel.respond_to?(:send_reaction)
 
+    unless channel.respond_to?(:send_reaction)
+      render json: { error: 'Reactions are not supported on this channel.' }, status: :unprocessable_entity
+      return
+    end
+
+    result = channel.send_reaction(@message.conversation.contact_inbox.source_id, @message, emoji)
+    if result == false
+      render json: { error: 'Failed to send reaction to the channel.' }, status: :unprocessable_entity
+      return
+    end
+
+    @message.add_reaction(Current.user, emoji)
     render :update
   end
 
@@ -78,13 +85,20 @@ class Api::V1::Accounts::Conversations::MessagesController < Api::V1::Accounts::
     return unless emoji
 
     @message = message
-    @message.remove_reaction(Current.user, emoji)
-
     channel = @message.conversation.inbox.channel
-    if channel.respond_to?(:remove_reaction)
-      channel.remove_reaction(@message.conversation.contact_inbox.source_id, @message, emoji)
+
+    unless channel.respond_to?(:remove_reaction)
+      render json: { error: 'Reactions are not supported on this channel.' }, status: :unprocessable_entity
+      return
     end
 
+    result = channel.remove_reaction(@message.conversation.contact_inbox.source_id, @message, emoji)
+    if result == false
+      render json: { error: 'Failed to remove reaction from the channel.' }, status: :unprocessable_entity
+      return
+    end
+
+    @message.remove_reaction(Current.user, emoji)
     render :update
   end
 

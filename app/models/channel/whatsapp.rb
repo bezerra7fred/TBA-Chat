@@ -133,10 +133,10 @@ class Channel::Whatsapp < ApplicationRecord
   delegate :send_message, to: :provider_service
   delegate :send_template, to: :provider_service
   def send_reaction(contact_number, message, emoji)
-    return unless provider == 'whatsapp_cloud'
+    return false unless provider == 'whatsapp_cloud'
 
     message_source_id = message.source_id
-    return if message_source_id.blank?
+    return false if message_source_id.blank?
 
     url = "https://graph.facebook.com/v18.0/#{phone_number_id}/messages"
     payload = {
@@ -150,9 +150,11 @@ class Channel::Whatsapp < ApplicationRecord
       }
     }
 
-    HTTParty.post(url, headers: api_headers, body: payload.to_json, timeout: 10)
+    response = HTTParty.post(url, headers: api_headers, body: payload.to_json, timeout: 10)
+    response.success?
   rescue StandardError => e
     Rails.logger.error "[WHATSAPP] Failed to send reaction: #{e.message}"
+    false
   end
 
   def remove_reaction(contact_number, message, emoji)
