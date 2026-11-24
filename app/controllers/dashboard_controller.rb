@@ -1,6 +1,7 @@
 class DashboardController < ActionController::Base
   include SwitchLocale
   include PortalHomeData
+  include PortalAuthGuard
 
   GLOBAL_CONFIG_KEYS = %w[
     LOGO
@@ -66,6 +67,9 @@ class DashboardController < ActionController::Base
 
     @portal = Portal.find_by(custom_domain: domain)
     return unless @portal
+
+    authenticate_portal_user!
+    return if performed?
 
     @locale = @portal.default_locale
     request.variant = :documentation if @portal.layout == 'documentation'

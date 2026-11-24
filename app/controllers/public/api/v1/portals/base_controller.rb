@@ -1,6 +1,8 @@
 class Public::Api::V1::Portals::BaseController < PublicController
   include SwitchLocale
+  include PortalAuthGuard
 
+  before_action :authenticate_portal_user!
   before_action :show_plain_layout
   before_action :set_color_scheme
   before_action :set_global_config

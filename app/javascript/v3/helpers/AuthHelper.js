@@ -126,6 +126,13 @@ export const getLoginRedirectURL = ({
     return DEFAULT_REDIRECT_URL;
   }
   if (redirectUrl) {
+    if (
+      redirectUrl.startsWith('/hc') ||
+      redirectUrl.startsWith('http://') ||
+      redirectUrl.startsWith('https://')
+    ) {
+      return redirectUrl;
+    }
     const { accounts = [] } = user || {};
     const redirectAccount = isShopifyInstallRedirect(redirectUrl)
       ? getShopifyInstallAccount({ accounts, accountId: ssoAccountId })
