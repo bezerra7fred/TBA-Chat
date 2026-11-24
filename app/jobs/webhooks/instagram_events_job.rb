@@ -143,20 +143,35 @@ class Webhooks::InstagramEventsJob < MutexApplicationJob
   end
 
   def process_reaction(messaging, channel)
-    reaction = messaging.dig(:message, :reaction) || {}
-    emoji = reaction[:emoji]
-    target_mid = reaction[:mid]
+    emoji, target_mid = reaction_details(messaging)
     return if emoji.blank? || target_mid.blank?
 
-    conversation = channel.conversations.find_by(source_id: messaging.dig(:sender, :id)) rescue nil
+    conversation = find_conversation_for_reaction(messaging, channel)
     return unless conversation
 
     target_message = conversation.messages.find_by(source_id: target_mid)
     return unless target_message
 
-    sender_id = messaging.dig(:sender, :id)
-    contact = channel.contact_inboxes.find_by(source_id: sender_id)&.contact
+    contact = find_contact_for_reaction(messaging, channel)
     target_message.add_reaction(contact, emoji) if contact
+  end
+
+  def reaction_details(messaging)
+    reaction = messaging.dig(:message, :reaction) || {}
+    [reaction[:emoji], reaction[:mid]]
+  end
+
+  def find_conversation_for_reaction(messaging, channel)
+    begin
+      channel.conversations.find_by(source_id: messaging.dig(:sender, :id))
+    rescue StandardError
+      nil
+    end
+  end
+
+  def find_contact_for_reaction(messaging, channel)
+    sender_id = messaging.dig(:sender, :id)
+    channel.contact_inboxes.find_by(source_id: sender_id)&.contact
   end
 
   def read(messaging, channel)
