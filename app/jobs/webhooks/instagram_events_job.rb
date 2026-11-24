@@ -130,11 +130,33 @@ class Webhooks::InstagramEventsJob < MutexApplicationJob
   end
 
   def message(messaging, channel)
+    if messaging.dig(:message, :reaction).present?
+      process_reaction(messaging, channel)
+      return
+    end
+
     if channel.is_a?(Channel::Instagram)
       ::Instagram::MessageText.new(messaging, channel).perform
     else
       ::Instagram::Messenger::MessageText.new(messaging, channel).perform
     end
+  end
+
+  def process_reaction(messaging, channel)
+    reaction = messaging.dig(:message, :reaction) || {}
+    emoji = reaction[:emoji]
+    target_mid = reaction[:mid]
+    return if emoji.blank? || target_mid.blank?
+
+    conversation = channel.conversations.find_by(source_id: messaging.dig(:sender, :id)) rescue nil
+    return unless conversation
+
+    target_message = conversation.messages.find_by(source_id: target_mid)
+    return unless target_message
+
+    sender_id = messaging.dig(:sender, :id)
+    contact = channel.contact_inboxes.find_by(source_id: sender_id)&.contact
+    target_message.add_reaction(contact, emoji) if contact
   end
 
   def read(messaging, channel)
