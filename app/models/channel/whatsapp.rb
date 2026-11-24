@@ -133,14 +133,30 @@ class Channel::Whatsapp < ApplicationRecord
   delegate :send_message, to: :provider_service
   delegate :send_template, to: :provider_service
   def send_reaction(contact_number, message, emoji)
+    return false unless valid_reaction_target?(contact_number, message)
+
+    url = "https://graph.facebook.com/v18.0/#{phone_number_id}/messages"
+    payload = reaction_payload(contact_number, message.source_id, emoji)
+    headers = api_headers.merge('Content-Type' => 'application/json')
+    response = HTTParty.post(url, headers: headers, body: payload.to_json, timeout: 10)
+    response.success?
+  rescue StandardError => e
+    Rails.logger.error "[WHATSAPP] Failed to send reaction: #{e.message}"
+    false
+  end
+
+  def valid_reaction_target?(contact_number, message)
     return false unless provider == 'whatsapp_cloud'
     return false if contact_number.blank? || message.blank?
 
     message_source_id = message.source_id
     return false if message_source_id.blank? || !message_source_id.is_a?(String)
 
-    url = "https://graph.facebook.com/v18.0/#{phone_number_id}/messages"
-    payload = {
+    true
+  end
+
+  def reaction_payload(contact_number, message_source_id, emoji)
+    {
       messaging_product: 'whatsapp',
       recipient_type: 'individual',
       to: contact_number,
@@ -150,16 +166,9 @@ class Channel::Whatsapp < ApplicationRecord
         emoji: emoji.to_s
       }
     }
-
-    headers = api_headers.merge('Content-Type' => 'application/json')
-    response = HTTParty.post(url, headers: headers, body: payload.to_json, timeout: 10)
-    response.success?
-  rescue StandardError => e
-    Rails.logger.error "[WHATSAPP] Failed to send reaction: #{e.message}"
-    false
   end
 
-  def remove_reaction(contact_number, message, emoji)
+  def remove_reaction(contact_number, message, _emoji)
     send_reaction(contact_number, message, '')
   end
   delegate :sync_templates, to: :provider_service

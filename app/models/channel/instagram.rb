@@ -79,7 +79,7 @@ class Channel::Instagram < ApplicationRecord
     message_mid = message.source_id
     return false if message_mid.blank? || !message_mid.is_a?(String)
 
-    url = "https://graph.facebook.com/v18.0/me/messages"
+    url = 'https://graph.facebook.com/v18.0/me/messages'
     payload = {
       recipient: { id: contact_psid },
       sender_action: 'react',
@@ -87,27 +87,29 @@ class Channel::Instagram < ApplicationRecord
       mid: message_mid
     }
 
-    response = HTTParty.post(url, query: { access_token: access_token }, body: payload.to_json, headers: { 'Content-Type' => 'application/json' }, timeout: 10)
+    headers = { 'Content-Type' => 'application/json' }
+    response = HTTParty.post(url, query: { access_token: access_token }, body: payload.to_json, headers: headers, timeout: 10)
     response.success?
   rescue StandardError => e
     Rails.logger.error "[INSTAGRAM] Failed to send reaction: #{e.message}"
     false
   end
 
-  def remove_reaction(contact_psid, message, emoji)
+  def remove_reaction(contact_psid, message, _emoji)
     return false if contact_psid.blank? || message.blank? || access_token.blank?
 
     message_mid = message.source_id
     return false if message_mid.blank? || !message_mid.is_a?(String)
 
-    url = "https://graph.facebook.com/v18.0/me/messages"
+    url = 'https://graph.facebook.com/v18.0/me/messages'
     payload = {
       recipient: { id: contact_psid },
       sender_action: 'unreact',
       payload: { message_id: message_mid }
     }
 
-    response = HTTParty.post(url, query: { access_token: access_token }, body: payload.to_json, headers: { 'Content-Type' => 'application/json' }, timeout: 10)
+    headers = { 'Content-Type' => 'application/json' }
+    response = HTTParty.post(url, query: { access_token: access_token }, body: payload.to_json, headers: headers, timeout: 10)
     response.success?
   rescue StandardError => e
     Rails.logger.error "[INSTAGRAM] Failed to remove reaction: #{e.message}"
