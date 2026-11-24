@@ -1,52 +1,66 @@
 # Handoff do projeto TBA-Chat
 
-Atualizado em 2026-11-24. Este arquivo registra o estado confirmado para a próxima sessão/agente.
+Atualizado em 2026-11-24. Este documento resume o contexto de projeto necessário para a próxima sessão/agente; não substitui o histórico completo nem contém segredos.
 
 ## Repositório e instruções
 
 - Repositório: https://github.com/bezerra7fred/TBA-Chat
 - Base confirmada: `origin/main` em `ed7f432a91` (`fix(microsoft): use tenant-specific OAuth authority`).
 - É um fork customizado do Chatwoot. Leia `AGENTS.md` antes de alterar código e siga o prefixo `rtk` para comandos de shell compatíveis.
-- O checkout principal local estava em uma branch antiga e sem alterações locais; o handoff foi preparado em uma branch isolada baseada no `origin/main`.
+- O trabalho deste handoff está numa branch isolada baseada no `origin/main`; não confundir com branches antigas no checkout original.
+- Preferências do usuário: conversar em português, avançar proativamente e usar a aba interna do Codex quando precisar abrir navegador.
 
-## Estado confirmado
+## Funcionalidades e estado do produto
 
 ### Outlook individual
 
-- A funcionalidade de caixa pessoal foi adicionada ao perfil do usuário: autenticação Microsoft e conexão individual por usuário, com leitura via IMAP e envio via SMTP.
-- A correção para usar autoridade OAuth específica do tenant está em `main` no commit `ed7f432a91`.
+- Foi adicionada ao perfil do usuário uma conexão de caixa pessoal Microsoft, com autenticação OAuth e leitura via IMAP/envio via SMTP.
+- A preferência é cada pessoa conectar sua própria caixa. O usuário quer receber e enviar mensagens.
+- A correção para autoridade OAuth específica do tenant está em `main` no commit `ed7f432a91`.
 - O login de produção chegou à Microsoft, mas terminou em **“Necessidade de aprovação de administrador”** para o aplicativo **TBA-Chat Outlook**. A conta usada não é administradora do tenant.
-- Portanto, a caixa ainda **não está conectada**: não foi concluído consentimento OAuth nem criado token/conexão utilizável.
-- O fluxo solicitou permissões delegadas para IMAP (`IMAP.AccessAsUser.All`) e SMTP (`SMTP.Send`), além de `offline_access` e escopos de identidade. O administrador do Microsoft 365 precisa aprovar o aplicativo no tenant; não tentar contornar essa política.
-- Depois da aprovação, retomar o login no navegador interno do Codex e validar entrada e envio de mensagens. A preferência é que cada pessoa conecte sua própria caixa.
+- A caixa ainda **não está conectada**: não houve consentimento OAuth concluído nem token/conexão utilizável.
+- Escopos solicitados: `IMAP.AccessAsUser.All`, `SMTP.Send`, `offline_access` e escopos de identidade. O administrador do Microsoft 365 precisa aprovar o aplicativo no tenant; não tentar contornar essa política.
+- Próximo passo após a aprovação: retomar o OAuth na aba interna do Codex, confirmar que IMAP e SMTP ficam ativos e testar recebimento e envio.
 
-### Reações e identidade visual
+### Reações e marca
 
-- Há alterações de reações na linha principal: atribuição de reações a pessoas, correção de limites do popup e rótulo mais claro no botão.
-- A correção de autoridade do tenant e a caixa Outlook individual estão presentes no histórico recente de `main`; conferir o comportamento implantado separadamente do código do repositório.
+- Alterações recentes na linha principal incluem mostrar quem reagiu, manter o seletor de emoji dentro da tela e trocar o botão “+” por um rótulo mais claro (“Reagir”).
+- Também há uma correção de título da aba/favicon para “TBA Chat” no histórico da linha principal.
+- Código presente no Git não garante que essas versões estejam em produção; validar o servidor separadamente.
 
-### CI
+### Lista de empresas
 
-- CircleCI foi escolhido como pipeline a usar.
-- A árvore atual de `main` ainda contém workflows em `.github/workflows`, incluindo `nightly_installer.yml`, `test_docker_build.yml`, `run_foss_spec.yml` e `tba-frontend-build.yml`. Logo, “somente CircleCI” ainda não está refletido literalmente na árvore.
-- Em uma resposta anterior, o usuário aceitou manter temporariamente no GitHub o build manual e o instalador noturno; depois reiterou “somente CircleCI”. Confirme o escopo atual antes de declarar a migração concluída ou remover workflows.
+- O usuário pediu incluir **AMVALI** e também: AM CONTABILIDADE; CEJAS_ACIJS_CDL_APEVI; DESENTUPIDORA CARVALHO; DIBRASA; DOCEMEL; ELETROFRIO; ELIAN; ESPAÇO SMART; ESTUDIOSEE; FSF (FRATERNIDADE SEM FRONTEIRA); GLOBAL; GRADUAL; GRUPO SEGURA; JCH REPRESENTAÇÕES; JJD ARQUITETURA; KRAPPER EIKON; KWB; LUCATHI COMMERCE; PKI CONSULTING; POLUX; PONTUAL MEDIC; PORTO E LEMKE; POSTO MARTENDAL; PRESTICOM; PROMA; RAUMAK; REDE M7; SANTANTONIO; SMART REPRESENTAÇÕES; STEELMAST; TEXTILFIO; TRITEC; ZOVENO.
+- Não localizei `AMVALI` nos diretórios `app`, `config` ou `db` da base atual. Verifique se a lista é mantida em banco/produção ou em outra tela antes de afirmar que todas foram incluídas.
 
-## Produção e acesso
+## WhatsApp via Evolution API — incidente em aberto
 
-- A instância está no Azure. Em sessões anteriores, os diagnósticos foram feitos pelo Azure Cloud Shell com Run Command; o SSH direto falhou por chave pública.
-- Um registro anterior reportou centenas de alterações pré-existentes no checkout do servidor (cerca de 682). **Verifique o estado atual antes de qualquer deploy**; não faça reset, checkout destrutivo nem substitua o diretório.
-- Foi relatado anteriormente que somente o patch da autoridade Microsoft foi aplicado diretamente no servidor e o serviço web reiniciado; isso não confirma que toda a funcionalidade Outlook de `main` esteja implantada. Revalidar versão e arquivos no servidor antes de prosseguir.
-- Não registrar neste repositório chaves SSH, tokens, segredos OAuth, valores de `state` ou credenciais.
+- O usuário relatou que novas mensagens de WhatsApp via Evolution API deixaram de chegar.
+- Última fotografia diagnóstica: `CHATWOOT_ENABLED=true`; endpoint da integração Chatwoot respondeu HTTP 200, habilitado, conta e token configurados; inbox `whatsapp`; host-alvo `127.0.0.1:3000`; `webhookUrlConfigured=false`; importação de contatos e mensagens habilitada.
+- Nos logs das últimas seis horas não apareceram eventos `messages.upsert` nem erros de webhook/integração pesquisados.
+- Container Evolution API estava em `networkMode=host`; teste local retornou HTTP 301 e o host público HTTP 200.
+- Causa ainda não foi determinada. Continuar verificando a configuração/entrega de eventos e o callback sem assumir que o HTTP 200 prova que as mensagens estão chegando.
+- O usuário pediu explicitamente para **não desconectar/reconectar o WhatsApp nem gerar QR code**, pois não estava com o aparelho da empresa.
 
-## Próximos passos
+## RTK e acesso ao servidor
 
-1. Aguardar o administrador conceder consentimento ao aplicativo **TBA-Chat Outlook** para as permissões IMAP e SMTP solicitadas.
-2. Retomar o OAuth da conta pessoal, verificar se IMAP e SMTP ficam ativos e testar recebimento e envio.
-3. Verificar com segurança se o código completo da integração está implantado em produção; preservar alterações existentes no servidor.
-4. Reconciliar a instrução mais recente de CircleCI-only com os workflows de GitHub Actions ainda presentes e registrar a decisão final.
+- RTK foi escolhido para reduzir consumo de tokens; o usuário informou que o instalou no servidor.
+- Uma execução por Azure Run Command respondeu `rtk: not found`. Isso mostra que o binário não estava no PATH do script não interativo, não necessariamente que a instalação inexista.
+- Diagnósticos anteriores foram feitos via Azure Cloud Shell/Run Command na VM `chatwoot-sv`, grupo `CHATWOOT`. SSH direto falhou por chave pública.
+- Um registro anterior reportou cerca de 682 alterações pré-existentes no checkout do servidor. Reconfira o estado antes de qualquer deploy; não faça reset, checkout destrutivo nem substitua o diretório.
+- Foi relatado que somente o patch da autoridade Microsoft foi aplicado diretamente no servidor e o serviço web reiniciado. Isso não confirma que toda a integração Outlook de `main` esteja implantada.
+- Não incluir chaves SSH, tokens, segredos OAuth, valores de `state`, API keys ou credenciais neste repositório.
 
-## Preferências de colaboração
+## CI e publicação
 
-- Conversar em português e avançar proativamente.
-- Quando uma página web for necessária, usar a aba interna do Codex.
-- Evitar pedir novamente informações já dadas; pedir intervenção do usuário somente quando uma aprovação administrativa ou ação na conta dele for necessária.
+- O usuário decidiu usar CircleCI como CI/CD e sua instrução mais recente é **somente CircleCI**.
+- A árvore atual de `main` ainda contém workflows em `.github/workflows`, incluindo `nightly_installer.yml`, `test_docker_build.yml`, `run_foss_spec.yml` e `tba-frontend-build.yml`. Portanto, a migração completa ainda não está refletida no repositório.
+- Houve uma decisão anterior e temporária de manter build manual e instalador noturno no GitHub Actions; ela foi seguida pela instrução mais recente de usar somente CircleCI. Tratar a migração/remoção dos workflows restantes como pendência, sem declarar concluído antes da verificação.
+
+## Próximos passos sugeridos
+
+1. Obter consentimento administrativo para o aplicativo Outlook e validar uma sessão real de envio e recebimento.
+2. Diagnosticar o fluxo de eventos/webhook da Evolution API sem desconectar a sessão do WhatsApp.
+3. Confirmar onde a lista de empresas é mantida e verificar todos os nomes solicitados.
+4. Migrar/desativar os workflows GitHub Actions restantes conforme a instrução CircleCI-only e validar os gatilhos resultantes.
+5. Verificar com segurança a versão e o estado da produção; preservar as alterações existentes no servidor antes de qualquer implantação.
