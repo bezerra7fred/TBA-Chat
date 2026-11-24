@@ -39,9 +39,9 @@ describe('#defaultRedirectPage', () => {
     );
   });
 
-  it('should return portals route for users with portal permissions', () => {
+  it('should return dashboard route for users with portal permissions (portal restricted)', () => {
     const permissions = ['knowledge_base_manage'];
-    expect(defaultRedirectPage(to, permissions)).toBe('accounts/2/portals');
+    expect(defaultRedirectPage(to, permissions)).toBe('accounts/2/dashboard');
   });
 
   it('should return dashboard route as default for users with custom roles', () => {
