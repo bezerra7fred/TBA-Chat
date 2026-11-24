@@ -74,14 +74,17 @@ class Channel::Instagram < ApplicationRecord
   end
 
   def send_reaction(contact_psid, message, emoji)
+    return false if contact_psid.blank? || message.blank? || access_token.blank?
+
     message_mid = message.source_id
-    return false if message_mid.blank? || access_token.blank?
+    return false if message_mid.blank? || !message_mid.is_a?(String)
 
     url = "https://graph.facebook.com/v18.0/me/messages"
     payload = {
       recipient: { id: contact_psid },
       sender_action: 'react',
-      payload: emoji
+      payload: emoji.to_s,
+      mid: message_mid
     }
 
     response = HTTParty.post(url, query: { access_token: access_token }, body: payload.to_json, headers: { 'Content-Type' => 'application/json' }, timeout: 10)
