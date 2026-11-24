@@ -16,6 +16,7 @@ RSpec.describe 'Public Articles API', type: :request do
   end
 
   before do
+    sign_in agent
     ENV['HELPCENTER_URL'] = ENV.fetch('FRONTEND_URL', nil)
     create(:article, category: category, portal: portal, account_id: account.id, author_id: agent.id, views: 15)
     create(:article, category: category, portal: portal, account_id: account.id, author_id: agent.id, views: 1)

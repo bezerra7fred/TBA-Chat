@@ -6,6 +6,7 @@ RSpec.describe Public::Api::V1::PortalsController, type: :request do
   let!(:portal) { create(:portal, slug: 'test-portal', account_id: account.id, custom_domain: 'www.example.com') }
 
   before do
+    sign_in agent
     create(:portal, slug: 'test-portal-1', account_id: account.id)
     create(:portal, slug: 'test-portal-2', account_id: account.id)
     create_list(:article, 3, account: account, author: agent, portal: portal, status: :published)
@@ -25,15 +26,11 @@ RSpec.describe Public::Api::V1::PortalsController, type: :request do
       expect(response).to have_http_status(:success)
     end
 
-    it 'does not set the session cookie' do
-      previous = ActionController::Base.allow_forgery_protection
-      ActionController::Base.allow_forgery_protection = true
-
+    it 'redirects unauthenticated visitors to login' do
+      sign_out agent
       get "/hc/#{portal.slug}/en"
 
-      expect(response.headers['Set-Cookie'].to_s).not_to include('_chatwoot_session')
-    ensure
-      ActionController::Base.allow_forgery_protection = previous
+      expect(response).to redirect_to(%r{/app/login\?redirect_url=})
     end
 
     it 'Throws unauthorised error for unknown domain' do

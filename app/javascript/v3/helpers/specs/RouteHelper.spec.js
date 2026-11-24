@@ -122,7 +122,7 @@ describe('#validateRouteAccess', () => {
     expect(next).toHaveBeenCalledWith('/app/login');
   });
 
-  it('continues to a pending Shopify signup when general signup is disabled', () => {
+  it('redirects to login for a pending Shopify signup when general signup is disabled', () => {
     validateRouteAccess(
       {
         name: 'auth_signup',
@@ -134,7 +134,7 @@ describe('#validateRouteAccess', () => {
     );
 
     expect(clearBrowserSessionCookies).not.toHaveBeenCalled();
-    expect(next).toHaveBeenCalledWith();
+    expect(next).toHaveBeenCalledWith('/app/login');
   });
 
   it('continues to the route in every other case', () => {

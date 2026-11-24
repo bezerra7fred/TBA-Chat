@@ -23,7 +23,15 @@ describe 'GET / on a help center custom domain', type: :request do
       create(:article, category: category, portal: portal, account: account, author: agent, locale: 'en', status: :published)
     end
 
-    it 'renders the documentation home in place without redirecting' do
+    it 'redirects unauthenticated visitors to login' do
+      host! portal.custom_domain
+      get '/'
+
+      expect(response).to redirect_to('http://www.chatwoot.test/app/login?redirect_url=%2Fhc%2Fdoc-portal%2Fen')
+    end
+
+    it 'renders the documentation home in place for authenticated members' do
+      sign_in agent
       host! portal.custom_domain
       get '/'
 
@@ -39,7 +47,15 @@ describe 'GET / on a help center custom domain', type: :request do
                       config: { allowed_locales: ['en'], default_locale: 'en', layout: 'classic' })
     end
 
-    it 'renders the classic home without the documentation layout' do
+    it 'redirects unauthenticated visitors to login' do
+      host! portal.custom_domain
+      get '/'
+
+      expect(response).to redirect_to('http://www.chatwoot.test/app/login?redirect_url=%2Fhc%2Fclassic-portal%2Fen')
+    end
+
+    it 'renders the classic home without the documentation layout for authenticated members' do
+      sign_in agent
       host! portal.custom_domain
       get '/'
 
