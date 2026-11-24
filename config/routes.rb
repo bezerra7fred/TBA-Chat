@@ -531,6 +531,12 @@ Rails.application.routes.draw do
 
         # MFA routes
         scope module: 'profile' do
+          resource :outlook, controller: 'outlook', only: [:show, :destroy] do
+            collection do
+              post :authorization
+              get :messages
+            end
+          end
           resource :mfa, controller: 'mfa', only: [:show, :create, :destroy] do
             post :verify
             post :backup_codes
@@ -760,6 +766,7 @@ Rails.application.routes.draw do
   end
 
   get 'microsoft/callback', to: 'microsoft/callbacks#show'
+  get 'microsoft/outlook/callback', to: 'microsoft/outlook_callbacks#show'
   get 'google/callback', to: 'google/callbacks#show'
   get 'instagram/callback', to: 'instagram/callbacks#show'
   get 'tiktok/callback', to: 'tiktok/callbacks#show'

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2026_10_19_143116) do
+ActiveRecord::Schema[7.1].define(version: 2026_11_24_003535) do
   # These extensions should be enabled to support this database
   enable_extension "pg_stat_statements"
   enable_extension "pg_trgm"
@@ -1527,6 +1527,16 @@ ActiveRecord::Schema[7.1].define(version: 2026_10_19_143116) do
     t.index ["secondary_actor_type", "secondary_actor_id"], name: "uniq_secondary_actor_per_account_notifications"
     t.index ["user_id", "account_id", "snoozed_until", "read_at"], name: "idx_notifications_performance"
     t.index ["user_id"], name: "index_notifications_on_user_id"
+  end
+
+  create_table "personal_outlook_connections", id: :serial, force: :cascade do |t|
+    t.bigint "user_id", null: false
+    t.string "email", null: false
+    t.text "refresh_token", null: false
+    t.datetime "expires_at", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["user_id"], name: "index_personal_outlook_connections_on_user_id", unique: true
   end
 
   create_table "platform_app_permissibles", force: :cascade do |t|
