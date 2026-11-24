@@ -25,7 +25,8 @@ import Logo from 'next/icon/Logo.vue';
 import ComposeConversation from 'dashboard/components-next/NewConversation/ComposeConversation.vue';
 import { getUserPermissions } from 'dashboard/helper/permissionsHelper';
 import {
-  isDarkModeActive,
+  isDarkMode,
+  syncThemeState,
   toggleColorTheme,
 } from 'dashboard/helper/themeHelper';
 import {
@@ -81,14 +82,12 @@ const isAdmin = computed(() => {
   return permissions.includes('administrator');
 });
 
-const isDarkMode = ref(false);
-
 const handleToggleTheme = () => {
-  isDarkMode.value = toggleColorTheme();
+  toggleColorTheme();
 };
 
 onMounted(() => {
-  isDarkMode.value = isDarkModeActive();
+  syncThemeState();
 });
 
 const isMonitorsAvailable = computed(
@@ -1139,7 +1138,7 @@ const menuItems = computed(() => {
           color="slate"
           size="sm"
           variant="ghost"
-          class="flex-shrink-0 !size-8 !outline-none text-n-slate-11 hover:text-n-slate-12 hover:bg-n-alpha-2 dark:hover:bg-n-slate-9/30 cursor-pointer"
+          class="flex-shrink-0 !size-8 text-n-slate-11 hover:text-n-slate-12 hover:bg-n-alpha-2 dark:hover:bg-n-slate-9/30 cursor-pointer focus-visible:ring-1 focus-visible:ring-n-brand focus-visible:outline-none"
           :aria-label="isDarkMode ? t('COMMAND_BAR.COMMANDS.LIGHT_MODE') : t('COMMAND_BAR.COMMANDS.DARK_MODE')"
           :title="isDarkMode ? t('COMMAND_BAR.COMMANDS.LIGHT_MODE') : t('COMMAND_BAR.COMMANDS.DARK_MODE')"
           :aria-pressed="isDarkMode"

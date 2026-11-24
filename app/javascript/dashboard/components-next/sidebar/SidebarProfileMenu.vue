@@ -7,7 +7,8 @@ import Avatar from 'next/avatar/Avatar.vue';
 import SidebarProfileMenuStatus from './SidebarProfileMenuStatus.vue';
 import { FEATURE_FLAGS } from 'dashboard/featureFlags';
 import {
-  isDarkModeActive,
+  isDarkMode,
+  syncThemeState,
   toggleColorTheme,
 } from 'dashboard/helper/themeHelper';
 
@@ -54,14 +55,12 @@ const toggleChatSupport = () => {
   }
 };
 
-const isDarkMode = ref(false);
-
 const handleToggleTheme = () => {
-  isDarkMode.value = toggleColorTheme();
+  toggleColorTheme();
 };
 
 onMounted(() => {
-  isDarkMode.value = isDarkModeActive();
+  syncThemeState();
 });
 
 const menuItems = computed(() => {
