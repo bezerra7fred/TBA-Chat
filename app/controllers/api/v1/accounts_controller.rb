@@ -154,8 +154,6 @@ class Api::V1::AccountsController < Api::BaseController
   end
 
   def check_signup_enabled
-    return if GlobalConfigService.account_signup_enabled? || pending_shopify_signup?
-
     raise ActionController::RoutingError, 'Not Found'
   end
 

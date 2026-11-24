@@ -1,11 +1,15 @@
 <script setup>
-import { computed } from 'vue';
+import { computed, ref, onMounted } from 'vue';
 import Auth from 'dashboard/api/auth';
 import { useMapGetter } from 'dashboard/composables/store';
 import { useI18n } from 'vue-i18n';
 import Avatar from 'next/avatar/Avatar.vue';
 import SidebarProfileMenuStatus from './SidebarProfileMenuStatus.vue';
 import { FEATURE_FLAGS } from 'dashboard/featureFlags';
+import {
+  isDarkModeActive,
+  toggleColorTheme,
+} from 'dashboard/helper/themeHelper';
 
 import {
   DropdownContainer,
@@ -50,6 +54,16 @@ const toggleChatSupport = () => {
   }
 };
 
+const isDarkMode = ref(false);
+
+const handleToggleTheme = () => {
+  isDarkMode.value = toggleColorTheme();
+};
+
+onMounted(() => {
+  isDarkMode.value = isDarkModeActive();
+});
+
 const menuItems = computed(() => {
   return [
     {
@@ -78,12 +92,11 @@ const menuItems = computed(() => {
     {
       show: true,
       showOnCustomBrandedInstance: true,
-      label: t('SIDEBAR_ITEMS.APPEARANCE'),
-      icon: 'i-lucide-palette',
-      click: () => {
-        const ninja = document.querySelector('ninja-keys');
-        ninja.open({ parent: 'appearance_settings' });
-      },
+      label: isDarkMode.value
+        ? t('COMMAND_BAR.COMMANDS.LIGHT_MODE')
+        : t('COMMAND_BAR.COMMANDS.DARK_MODE'),
+      icon: isDarkMode.value ? 'i-lucide-sun' : 'i-lucide-moon',
+      click: handleToggleTheme,
     },
     {
       show: true,

@@ -23,6 +23,11 @@ import EmojiIcon from 'next/emoji-icon-picker/EmojiIcon.vue';
 import SidebarAccountSwitcher from './SidebarAccountSwitcher.vue';
 import Logo from 'next/icon/Logo.vue';
 import ComposeConversation from 'dashboard/components-next/NewConversation/ComposeConversation.vue';
+import { getUserPermissions } from 'dashboard/helper/permissionsHelper';
+import {
+  isDarkModeActive,
+  toggleColorTheme,
+} from 'dashboard/helper/themeHelper';
 import {
   SIDEBAR_SORT_SECTIONS,
   getSidebarSortOptions,
@@ -66,9 +71,25 @@ const isMobile = computed(() => windowWidth.value < 768);
 
 const accountId = useMapGetter('getCurrentAccountId');
 const currentUserId = useMapGetter('getCurrentUserID');
+const currentUser = useMapGetter('getCurrentUser');
 const isFeatureEnabledonAccount = useMapGetter(
   'accounts/isFeatureEnabledonAccount'
 );
+
+const isAdmin = computed(() => {
+  const permissions = getUserPermissions(currentUser.value, accountId.value);
+  return permissions.includes('administrator');
+});
+
+const isDarkMode = ref(false);
+
+const handleToggleTheme = () => {
+  isDarkMode.value = toggleColorTheme();
+};
+
+onMounted(() => {
+  isDarkMode.value = isDarkModeActive();
+});
 
 const isMonitorsAvailable = computed(
   () =>
@@ -728,75 +749,79 @@ const menuItems = computed(() => {
           : []),
       ],
     },
-    {
-      name: 'Campaigns',
-      label: t('SIDEBAR.CAMPAIGNS'),
-      icon: 'i-lucide-megaphone',
-      children: [
-        {
-          name: 'Live chat',
-          label: t('SIDEBAR.LIVE_CHAT'),
-          to: accountScopedRoute('campaigns_livechat_index'),
-        },
-        {
-          name: 'SMS',
-          label: t('SIDEBAR.SMS'),
-          to: accountScopedRoute('campaigns_sms_index'),
-        },
-        {
-          name: 'WhatsApp',
-          label: t('SIDEBAR.WHATSAPP'),
-          to: accountScopedRoute('campaigns_whatsapp_index'),
-        },
-      ],
-    },
-    {
-      name: 'Portals',
-      label: t('SIDEBAR.HELP_CENTER.TITLE'),
-      icon: 'i-lucide-library-big',
-      children: [
-        {
-          name: 'Articles',
-          label: t('SIDEBAR.HELP_CENTER.ARTICLES'),
-          activeOn: [
-            'portals_articles_index',
-            'portals_articles_new',
-            'portals_articles_edit',
-          ],
-          to: accountScopedRoute('portals_index', {
-            navigationPath: 'portals_articles_index',
-          }),
-        },
-        {
-          name: 'Categories',
-          label: t('SIDEBAR.HELP_CENTER.CATEGORIES'),
-          activeOn: [
-            'portals_categories_index',
-            'portals_categories_articles_index',
-            'portals_categories_articles_edit',
-          ],
-          to: accountScopedRoute('portals_index', {
-            navigationPath: 'portals_categories_index',
-          }),
-        },
-        {
-          name: 'Locales',
-          label: t('SIDEBAR.HELP_CENTER.LOCALES'),
-          activeOn: ['portals_locales_index'],
-          to: accountScopedRoute('portals_index', {
-            navigationPath: 'portals_locales_index',
-          }),
-        },
-        {
-          name: 'Settings',
-          label: t('SIDEBAR.HELP_CENTER.SETTINGS'),
-          activeOn: ['portals_settings_index'],
-          to: accountScopedRoute('portals_index', {
-            navigationPath: 'portals_settings_index',
-          }),
-        },
-      ],
-    },
+    ...(isAdmin.value
+      ? [
+          {
+            name: 'Campaigns',
+            label: t('SIDEBAR.CAMPAIGNS'),
+            icon: 'i-lucide-megaphone',
+            children: [
+              {
+                name: 'Live chat',
+                label: t('SIDEBAR.LIVE_CHAT'),
+                to: accountScopedRoute('campaigns_livechat_index'),
+              },
+              {
+                name: 'SMS',
+                label: t('SIDEBAR.SMS'),
+                to: accountScopedRoute('campaigns_sms_index'),
+              },
+              {
+                name: 'WhatsApp',
+                label: t('SIDEBAR.WHATSAPP'),
+                to: accountScopedRoute('campaigns_whatsapp_index'),
+              },
+            ],
+          },
+          {
+            name: 'Portals',
+            label: t('SIDEBAR.HELP_CENTER.TITLE'),
+            icon: 'i-lucide-library-big',
+            children: [
+              {
+                name: 'Articles',
+                label: t('SIDEBAR.HELP_CENTER.ARTICLES'),
+                activeOn: [
+                  'portals_articles_index',
+                  'portals_articles_new',
+                  'portals_articles_edit',
+                ],
+                to: accountScopedRoute('portals_index', {
+                  navigationPath: 'portals_articles_index',
+                }),
+              },
+              {
+                name: 'Categories',
+                label: t('SIDEBAR.HELP_CENTER.CATEGORIES'),
+                activeOn: [
+                  'portals_categories_index',
+                  'portals_categories_articles_index',
+                  'portals_categories_articles_edit',
+                ],
+                to: accountScopedRoute('portals_index', {
+                  navigationPath: 'portals_categories_index',
+                }),
+              },
+              {
+                name: 'Locales',
+                label: t('SIDEBAR.HELP_CENTER.LOCALES'),
+                activeOn: ['portals_locales_index'],
+                to: accountScopedRoute('portals_index', {
+                  navigationPath: 'portals_locales_index',
+                }),
+              },
+              {
+                name: 'Settings',
+                label: t('SIDEBAR.HELP_CENTER.SETTINGS'),
+                activeOn: ['portals_settings_index'],
+                to: accountScopedRoute('portals_index', {
+                  navigationPath: 'portals_settings_index',
+                }),
+              },
+            ],
+          },
+        ]
+      : []),
     {
       name: 'Settings',
       label: t('SIDEBAR.SETTINGS'),
@@ -1102,11 +1127,24 @@ const menuItems = computed(() => {
       />
       <div
         class="px-1 py-1.5 flex-shrink-0 flex w-full z-50 gap-2 items-center border-t border-n-weak shadow-[0px_-2px_4px_0px_rgba(27,28,29,0.02)]"
-        :class="isEffectivelyCollapsed ? 'justify-center' : 'justify-between'"
+        :class="isEffectivelyCollapsed ? 'flex-col justify-center' : 'justify-between'"
       >
         <SidebarProfileMenu
           :is-collapsed="isEffectivelyCollapsed"
+          class="flex-grow min-w-0"
           @open-key-shortcut-modal="emit('openKeyShortcutModal')"
+        />
+        <Button
+          :icon="isDarkMode ? 'i-lucide-sun' : 'i-lucide-moon'"
+          color="slate"
+          size="sm"
+          variant="ghost"
+          class="flex-shrink-0 !size-8 !outline-none text-n-slate-11 hover:text-n-slate-12 hover:bg-n-alpha-2 dark:hover:bg-n-slate-9/30 cursor-pointer"
+          :aria-label="isDarkMode ? t('COMMAND_BAR.COMMANDS.LIGHT_MODE') : t('COMMAND_BAR.COMMANDS.DARK_MODE')"
+          :title="isDarkMode ? t('COMMAND_BAR.COMMANDS.LIGHT_MODE') : t('COMMAND_BAR.COMMANDS.DARK_MODE')"
+          :aria-pressed="isDarkMode"
+          role="button"
+          @click="handleToggleTheme"
         />
       </div>
     </section>

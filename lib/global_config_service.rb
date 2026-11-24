@@ -16,6 +16,6 @@ class GlobalConfigService
   end
 
   def self.account_signup_enabled?
-    load('ENABLE_ACCOUNT_SIGNUP', 'false').to_s != 'false'
+    false
   end
 end
