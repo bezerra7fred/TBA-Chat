@@ -148,29 +148,31 @@ class Message < ApplicationRecord
     @token ||= inbox.channel.try(:page_access_token)
   end
 
-  def add_reaction(user, emoji)
+  def add_reaction(actor, emoji)
     with_lock do
       current_reactions = Array(content_attributes['reactions'])
       already_reacted = current_reactions.any? do |reaction|
-        reaction.is_a?(Hash) && reaction['user_id'].to_s == user.id.to_s && reaction['emoji'] == emoji
+        reaction.is_a?(Hash) && reaction['actor_id'].to_s == actor.id.to_s && reaction['actor_type'] == actor.class.name && reaction['emoji'] == emoji
       end
       next if already_reacted
 
       reaction = {
         'emoji' => emoji,
-        'user_id' => user.id,
-        'user_name' => user.name,
-        'user_avatar_url' => user.avatar_url
+        'actor_id' => actor.id,
+        'actor_type' => actor.class.name,
+        'user_id' => actor.id,
+        'user_name' => actor.try(:name),
+        'user_avatar_url' => actor.try(:avatar_url)
       }
       update!(content_attributes: content_attributes.merge('reactions' => current_reactions + [reaction]))
     end
   end
 
-  def remove_reaction(user, emoji)
+  def remove_reaction(actor, emoji)
     with_lock do
       current_reactions = Array(content_attributes['reactions'])
       updated_reactions = current_reactions.reject do |reaction|
-        reaction.is_a?(Hash) && reaction['user_id'].to_s == user.id.to_s && reaction['emoji'] == emoji
+        reaction.is_a?(Hash) && reaction['actor_id'].to_s == actor.id.to_s && reaction['actor_type'] == actor.class.name && reaction['emoji'] == emoji
       end
       next if updated_reactions.size == current_reactions.size
 
