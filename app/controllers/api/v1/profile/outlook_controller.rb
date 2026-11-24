@@ -16,9 +16,7 @@ class Api::V1::Profile::OutlookController < Api::BaseController
 
   def messages
     folder = params.fetch(:folder, 'inbox')
-    unless %w[inbox sent].include?(folder)
-      return render json: { error: 'Invalid folder' }, status: :unprocessable_entity
-    end
+    return render json: { error: 'Invalid folder' }, status: :unprocessable_entity unless %w[inbox sent].include?(folder)
 
     render json: { messages: PersonalOutlook::MailboxService.new(connection!).messages(folder: folder) }
   end

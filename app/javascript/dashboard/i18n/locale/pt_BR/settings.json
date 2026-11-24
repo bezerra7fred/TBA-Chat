@@ -9,16 +9,6 @@
     "UPDATE_SUCCESS": "Seu perfil foi atualizado com sucesso",
     "PASSWORD_UPDATE_SUCCESS": "A sua senha foi alterada com sucesso",
     "AFTER_EMAIL_CHANGED": "Seu perfil foi atualizado com sucesso. Faça login novamente, pois suas credenciais de login foram alteradas",
-    "OUTLOOK": {
-      "TITLE": "Caixa pessoal do Outlook",
-      "DESCRIPTION": "Conecte sua própria conta Outlook para ler a caixa de entrada e os itens enviados. Somente você pode acessar esta caixa.",
-      "CONNECT": "Conectar Outlook",
-      "DISCONNECT": "Desconectar",
-      "DISCONNECTED": "Nenhuma conta Outlook conectada",
-      "INBOX": "Caixa de Entrada",
-      "SENT": "Itens Enviados",
-      "LOADING": "Carregando mensagens..."
-    },
     "FORM": {
       "PICTURE": "Foto do perfil",
       "AVATAR": "Imagem de Perfil",

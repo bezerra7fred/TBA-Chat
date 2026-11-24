@@ -41,7 +41,7 @@ class PersonalOutlook::MailboxService
       token_url: 'https://login.microsoftonline.com/common/oauth2/v2.0/token'
     )
     token = OAuth2::AccessToken.new(client, nil, refresh_token: @connection.refresh_token).refresh!
-    @connection.update!(refresh_token: token.refresh_token, expires_at: Time.at(token.expires_at))
+    @connection.update!(refresh_token: token.refresh_token, expires_at: Time.zone.at(token.expires_at))
     token.token
   end
 

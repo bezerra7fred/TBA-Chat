@@ -1,19 +1,15 @@
 <script setup>
 import { onMounted, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 import PersonalOutlookAPI from 'dashboard/api/personalOutlook';
 import Button from 'dashboard/components-next/button/Button.vue';
 import { useAlert } from 'dashboard/composables';
 
 const connection = ref({ connected: false, email: null });
+const { t } = useI18n();
 const messages = ref([]);
 const folder = ref('inbox');
 const loading = ref(false);
-
-const loadConnection = async () => {
-  const { data } = await PersonalOutlookAPI.show();
-  connection.value = data;
-  if (data.connected) await loadMessages();
-};
 
 const loadMessages = async () => {
   loading.value = true;
@@ -21,10 +17,16 @@ const loadMessages = async () => {
     const { data } = await PersonalOutlookAPI.messages(folder.value);
     messages.value = data.messages;
   } catch {
-    useAlert('Could not load Outlook messages.');
+    useAlert(t('PROFILE_SETTINGS.OUTLOOK.LOAD_ERROR'));
   } finally {
     loading.value = false;
   }
+};
+
+const loadConnection = async () => {
+  const { data } = await PersonalOutlookAPI.show();
+  connection.value = data;
+  if (data.connected) await loadMessages();
 };
 
 const connect = async () => {
@@ -67,12 +69,7 @@ onMounted(loadConnection);
         >
           {{ $t('PROFILE_SETTINGS.OUTLOOK.CONNECT') }}
         </Button>
-        <Button
-          v-else
-          variant="outline"
-          type="button"
-          @click="disconnect"
-        >
+        <Button v-else variant="outline" type="button" @click="disconnect">
           {{ $t('PROFILE_SETTINGS.OUTLOOK.DISCONNECT') }}
         </Button>
       </div>
@@ -93,8 +90,12 @@ onMounted(loadConnection);
       <ul v-else class="flex flex-col divide-y divide-n-weak">
         <li v-for="message in messages" :key="message.id" class="py-3">
           <p class="font-medium text-n-slate-12">{{ message.subject }}</p>
-          <p class="text-sm text-n-slate-11">{{ message.from }} · {{ message.date }}</p>
-          <p class="mt-2 whitespace-pre-wrap text-sm text-n-slate-11">{{ message.body }}</p>
+          <p class="text-sm text-n-slate-11">
+            {{ message.from }} · {{ message.date }}
+          </p>
+          <p class="mt-2 whitespace-pre-wrap text-sm text-n-slate-11">
+            {{ message.body }}
+          </p>
         </li>
       </ul>
     </template>

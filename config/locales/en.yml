@@ -31,6 +31,8 @@
 
 en:
   hello: 'Hello world'
+  personal_outlook:
+    connection_failed: 'Outlook connection failed.'
   administrator_notifications:
     captain:
       response_usage_alert:

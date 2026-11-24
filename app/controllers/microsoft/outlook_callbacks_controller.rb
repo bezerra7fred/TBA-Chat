@@ -2,20 +2,10 @@ class Microsoft::OutlookCallbacksController < ApplicationController
   def show
     user = User.find_signed!(params[:state], purpose: :personal_outlook)
     token = microsoft_client.auth_code.get_token(params[:code], redirect_uri: callback_url)
-    token_data = token.to_hash
-    identity = JWT.decode(token_data.fetch(:id_token), nil, false).first
-    email = identity['preferred_username'] || identity['email']
-
-    user.personal_outlook_connection&.destroy!
-    user.create_personal_outlook_connection!(
-      email: email,
-      refresh_token: token_data.fetch(:refresh_token),
-      expires_at: Time.at(token_data.fetch(:expires_at))
-    )
-
+    save_connection(user, token.to_hash)
     redirect_to profile_url(user)
   rescue ActiveRecord::RecordInvalid, ActiveRecord::RecordNotFound, JWT::DecodeError, KeyError, OAuth2::Error
-    redirect_to ENV.fetch('FRONTEND_URL', request.base_url), alert: 'Outlook connection failed.'
+    redirect_to ENV.fetch('FRONTEND_URL', request.base_url), alert: I18n.t('personal_outlook.connection_failed')
   end
 
   private
@@ -32,6 +22,16 @@ class Microsoft::OutlookCallbacksController < ApplicationController
 
   def callback_url
     "#{ENV.fetch('FRONTEND_URL', request.base_url)}/microsoft/outlook/callback"
+  end
+
+  def save_connection(user, token_data)
+    identity = JWT.decode(token_data.fetch(:id_token), nil, false).first
+    user.personal_outlook_connection&.destroy!
+    user.create_personal_outlook_connection!(
+      email: identity['preferred_username'] || identity['email'],
+      refresh_token: token_data.fetch(:refresh_token),
+      expires_at: Time.zone.at(token_data.fetch(:expires_at))
+    )
   end
 
   def profile_url(user)

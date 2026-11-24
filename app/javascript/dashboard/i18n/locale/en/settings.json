@@ -17,7 +17,8 @@
       "DISCONNECTED": "No Outlook account connected",
       "INBOX": "Inbox",
       "SENT": "Sent items",
-      "LOADING": "Loading messages..."
+      "LOADING": "Loading messages...",
+      "LOAD_ERROR": "Could not load Outlook messages."
     },
     "FORM": {
       "PICTURE": "Profile Picture",
