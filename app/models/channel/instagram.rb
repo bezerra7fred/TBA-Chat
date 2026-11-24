@@ -75,7 +75,7 @@ class Channel::Instagram < ApplicationRecord
 
   def send_reaction(contact_psid, message, emoji)
     message_mid = message.source_id
-    return if message_mid.blank? || access_token.blank?
+    return false if message_mid.blank? || access_token.blank?
 
     url = "https://graph.facebook.com/v18.0/me/messages"
     payload = {
@@ -84,9 +84,11 @@ class Channel::Instagram < ApplicationRecord
       payload: emoji
     }
 
-    HTTParty.post(url, query: { access_token: access_token }, body: payload.to_json, headers: { 'Content-Type' => 'application/json' }, timeout: 10)
+    response = HTTParty.post(url, query: { access_token: access_token }, body: payload.to_json, headers: { 'Content-Type' => 'application/json' }, timeout: 10)
+    response.success?
   rescue StandardError => e
     Rails.logger.error "[INSTAGRAM] Failed to send reaction: #{e.message}"
+    false
   end
 
   def remove_reaction(contact_psid, message, emoji)
