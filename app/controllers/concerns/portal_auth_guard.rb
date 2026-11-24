@@ -29,21 +29,33 @@ module PortalAuthGuard
   end
 
   def resolve_portal_user
-    if respond_to?(:authenticate_by_access_token?, true) && authenticate_by_access_token?
-      authenticate_access_token!
-      return nil if performed?
+    return resolve_access_token_portal_user if access_token_authentication_enabled?
 
-      return @resource if @resource.is_a?(User)
+    resolve_session_portal_user
+  end
 
-      Current.user = nil
-      render_portal_response('Forbidden', 'Access to this portal is not authorized for bots', :unauthorized)
-      return nil
-    end
+  def access_token_authentication_enabled?
+    respond_to?(:authenticate_by_access_token?, true) && authenticate_by_access_token?
+  end
 
+  def resolve_access_token_portal_user
+    authenticate_access_token!
+    return nil if performed?
+
+    return @resource if @resource.is_a?(User)
+
+    Current.user = nil
+    render_portal_response('Forbidden', 'Access to this portal is not authorized for bots', :unauthorized)
+    nil
+  end
+
+  def resolve_session_portal_user
     set_user_by_token if respond_to?(:set_user_by_token, true)
     return @resource if @resource.is_a?(User)
 
-    current_user if respond_to?(:current_user) && current_user.is_a?(User)
+    return unless respond_to?(:current_user)
+
+    current_user if current_user.is_a?(User)
   end
 
   def authorize_portal_user!(user)
@@ -96,8 +108,8 @@ module PortalAuthGuard
     normalized = path.to_s
     valid = normalized.start_with?('/hc') &&
             !normalized.start_with?('//') &&
-            !normalized.include?('://') &&
-            !normalized.include?('\\')
+            normalized.exclude?('://') &&
+            normalized.exclude?('\\')
     valid ? normalized : '/hc'
   end
 end
