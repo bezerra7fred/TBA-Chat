@@ -68,12 +68,22 @@ class DashboardController < ActionController::Base
     @portal = Portal.find_by(custom_domain: domain)
     return unless @portal
 
-    authenticate_portal_user!
+    begin
+      authenticate_portal_user!
+    rescue StandardError => e
+      Rails.logger.error "[PORTAL] Authentication error: #{e.message}"
+      render_portal_response('Forbidden', 'Authentication failed', :forbidden)
+      return
+    end
     return if performed?
 
     @locale = @portal.default_locale
     request.variant = :documentation if @portal.layout == 'documentation'
-    load_home_data
+    begin
+      load_home_data
+    rescue StandardError => e
+      Rails.logger.error "[PORTAL] Home data error: #{e.message}"
+    end
     render 'public/api/v1/portals/show', layout: 'portal', portal: @portal and return
   end
 
