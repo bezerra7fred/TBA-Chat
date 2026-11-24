@@ -10,7 +10,6 @@ import {
   CONVERSATION_PERMISSIONS,
   CONTACT_PERMISSIONS,
   REPORTS_PERMISSIONS,
-  PORTAL_PERMISSIONS,
 } from 'dashboard/constants/permissions.js';
 
 export const routeIsAccessibleFor = (route, userPermissions = []) => {
