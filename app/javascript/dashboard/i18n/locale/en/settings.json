@@ -9,6 +9,16 @@
     "UPDATE_SUCCESS": "Your profile has been updated successfully",
     "PASSWORD_UPDATE_SUCCESS": "Your password has been changed successfully",
     "AFTER_EMAIL_CHANGED": "Your profile has been updated successfully, please login again as your login credentials are changed",
+    "OUTLOOK": {
+      "TITLE": "Personal Outlook mailbox",
+      "DESCRIPTION": "Connect your own Outlook account to read your inbox and sent items. Only you can access this mailbox.",
+      "CONNECT": "Connect Outlook",
+      "DISCONNECT": "Disconnect",
+      "DISCONNECTED": "No Outlook account connected",
+      "INBOX": "Inbox",
+      "SENT": "Sent items",
+      "LOADING": "Loading messages..."
+    },
     "FORM": {
       "PICTURE": "Profile Picture",
       "AVATAR": "Profile Image",

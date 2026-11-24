@@ -21,6 +21,7 @@ import BaseSettingsHeader from '../components/BaseSettingsHeader.vue';
 import AccessToken from './AccessToken.vue';
 import MfaSettingsCard from './MfaSettingsCard.vue';
 import ActiveSessions from './ActiveSessions.vue';
+import PersonalOutlook from './PersonalOutlook.vue';
 import Policy from 'dashboard/components/policy.vue';
 import RadioCard from 'dashboard/components-next/radioCard/RadioCard.vue';
 import {
@@ -44,6 +45,7 @@ export default {
     AccessToken,
     MfaSettingsCard,
     ActiveSessions,
+    PersonalOutlook,
     BaseSettingsHeader,
   },
   setup() {
@@ -282,6 +284,13 @@ export default {
         :message-signature="messageSignature"
         @update-signature="updateSignature"
       />
+    </SectionLayout>
+    <SectionLayout
+      with-border
+      :title="$t('PROFILE_SETTINGS.OUTLOOK.TITLE')"
+      :description="$t('PROFILE_SETTINGS.OUTLOOK.DESCRIPTION')"
+    >
+      <PersonalOutlook />
     </SectionLayout>
     <SectionLayout
       with-border
