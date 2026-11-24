@@ -1126,9 +1126,7 @@ const menuItems = computed(() => {
       />
       <div
         class="px-1 py-1.5 flex-shrink-0 flex w-full z-50 gap-2 items-center border-t border-n-weak shadow-[0px_-2px_4px_0px_rgba(27,28,29,0.02)]"
-        :class="
-          isEffectivelyCollapsed ? 'flex-col justify-center' : 'justify-between'
-        "
+        :class="isEffectivelyCollapsed ? 'flex-col justify-center' : 'justify-between'"
       >
         <SidebarProfileMenu
           :is-collapsed="isEffectivelyCollapsed"
@@ -1141,16 +1139,8 @@ const menuItems = computed(() => {
           size="sm"
           variant="ghost"
           class="flex-shrink-0 !size-8 text-n-slate-11 hover:text-n-slate-12 hover:bg-n-alpha-2 dark:hover:bg-n-slate-9/30 cursor-pointer focus-visible:ring-1 focus-visible:ring-n-brand focus-visible:outline-none"
-          :aria-label="
-            isDarkMode
-              ? t('COMMAND_BAR.COMMANDS.LIGHT_MODE')
-              : t('COMMAND_BAR.COMMANDS.DARK_MODE')
-          "
-          :title="
-            isDarkMode
-              ? t('COMMAND_BAR.COMMANDS.LIGHT_MODE')
-              : t('COMMAND_BAR.COMMANDS.DARK_MODE')
-          "
+          :aria-label="isDarkMode ? t('COMMAND_BAR.COMMANDS.LIGHT_MODE') : t('COMMAND_BAR.COMMANDS.DARK_MODE')"
+          :title="isDarkMode ? t('COMMAND_BAR.COMMANDS.LIGHT_MODE') : t('COMMAND_BAR.COMMANDS.DARK_MODE')"
           :aria-pressed="isDarkMode"
           role="button"
           @click="handleToggleTheme"
