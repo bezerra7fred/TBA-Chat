@@ -55,7 +55,13 @@ module PortalAuthGuard
 
   def portal_login_url
     frontend_url = ENV.fetch('FRONTEND_URL', nil).presence || "#{request.protocol}#{request.host_with_port}"
-    redirect_target = request.fullpath.presence || request.original_url
+    redirect_target = if request.fullpath.to_s.start_with?('/hc')
+                        request.fullpath
+                      elsif target_portal.present?
+                        "/hc/#{target_portal.slug}"
+                      else
+                        '/hc'
+                      end
     "#{frontend_url}/app/login?#{ { redirect_url: redirect_target }.to_query }"
   end
 end
