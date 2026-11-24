@@ -50,20 +50,13 @@ module PortalAuthGuard
   end
 
   def resolve_session_portal_user
-    begin
-      set_user_by_token if respond_to?(:set_user_by_token, true)
-    rescue StandardError
-      # Ignore token resolution errors in web sessions
-    end
+    set_user_by_token if respond_to?(:set_user_by_token, true)
     return @resource if @resource.is_a?(User)
 
     return unless respond_to?(:current_user)
 
-    begin
-      current_user if current_user.is_a?(User)
-    rescue StandardError
-      nil
-    end
+    user = current_user
+    user if user.is_a?(User)
   end
 
   def authorize_portal_user!(user)
