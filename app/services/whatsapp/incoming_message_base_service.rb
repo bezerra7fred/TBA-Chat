@@ -75,7 +75,13 @@ class Whatsapp::IncomingMessageBaseService
 
     process_in_reply_to(message)
 
-    message_type == 'contacts' ? create_contact_messages(message) : create_regular_message(message)
+    if message_type == 'reaction'
+      process_reaction(message)
+    elsif message_type == 'contacts'
+      create_contact_messages(message)
+    else
+      create_regular_message(message)
+    end
   end
 
   # WhatsApp delivers messages it cannot render (e.g. coexistence companion-device syncs that
@@ -95,6 +101,18 @@ class Whatsapp::IncomingMessageBaseService
     attach_files
     attach_location if message_type == 'location'
     @message.save!
+  end
+
+  def process_reaction(message)
+    reaction_data = message[:reaction] || {}
+    emoji = reaction_data[:emoji]
+    target_source_id = reaction_data[:message_id]
+    return if emoji.blank? || target_source_id.blank?
+
+    target_message = @conversation.messages.find_by(source_id: target_source_id)
+    return unless target_message
+
+    target_message.add_reaction(@contact, emoji)
   end
 
   def set_contact
