@@ -15,10 +15,9 @@ module PortalAuthGuard
 
     if user.blank? || !user.is_a?(User)
       handle_unauthenticated_portal_user
-      return
+    else
+      authorize_portal_user!(user)
     end
-
-    authorize_portal_user!(user)
   end
 
   def handle_unauthenticated_portal_user
@@ -31,88 +30,49 @@ module PortalAuthGuard
 
   def resolve_portal_user
     if respond_to?(:authenticate_by_access_token?, true) && authenticate_by_access_token?
-      return resolve_access_token_user
-    end
+      authenticate_access_token!
+      return nil if performed?
 
-    resolve_session_or_devise_user
-  end
+      return @resource if @resource.is_a?(User)
 
-  def resolve_access_token_user
-    authenticate_access_token!
-    return nil if performed?
-
-    unless @resource.is_a?(User)
       Current.user = nil
-      render_bot_unauthorized
+      render_portal_response('Forbidden', 'Access to this portal is not authorized for bots', :unauthorized)
       return nil
     end
 
-    @resource
-  end
-
-  def render_bot_unauthorized
-    if request.format.html?
-      render plain: 'Forbidden', status: :forbidden
-    else
-      render json: { error: 'Access to this portal is not authorized for bots' }, status: :unauthorized
-    end
-  end
-
-  def resolve_session_or_devise_user
     set_user_by_token if respond_to?(:set_user_by_token, true)
     return @resource if @resource.is_a?(User)
 
-    user = current_user if respond_to?(:current_user)
-    user if user.is_a?(User)
+    current_user if respond_to?(:current_user) && current_user.is_a?(User)
   end
 
   def authorize_portal_user!(user)
-    unless user.is_a?(User)
-      render_portal_forbidden
-      return
-    end
-
-    return if user.super_admin?
+    return if user.is_a?(User) && user.super_admin?
 
     portal = target_portal
-    if portal.blank?
-      render_portal_not_found
-      return
-    end
+    return render_portal_response('Not Found', 'Portal not found', :not_found) if portal.blank?
+    return if user.is_a?(User) && user.account_users.exists?(account_id: portal.account_id)
 
-    return if user_belongs_to_portal_account?(user, portal)
-
-    render_portal_forbidden
+    render_portal_response('Forbidden', 'You are not authorized to view this portal.', :forbidden)
   end
 
-  def user_belongs_to_portal_account?(user, portal)
-    user.account_users.exists?(account_id: portal.account_id)
-  end
-
-  def render_portal_forbidden
+  def render_portal_response(plain_msg, json_msg, status)
     if request.format.html?
-      render plain: 'Forbidden', status: :forbidden
+      html_status = status == :unauthorized ? :forbidden : status
+      render plain: plain_msg, status: html_status
     else
-      render json: { error: 'You are not authorized to view this portal.' }, status: :forbidden
-    end
-  end
-
-  def render_portal_not_found
-    if request.format.html?
-      render plain: 'Not Found', status: :not_found
-    else
-      render json: { error: 'Portal not found' }, status: :not_found
+      render json: { error: json_msg }, status: status
     end
   end
 
   def target_portal
     return @portal if @portal.present?
 
-    if params[:slug].present?
-      Portal.find_by(slug: params[:slug], archived: false)
-    else
-      Portal.find_by(custom_domain: request.host, archived: false)
-    end
+    @portal = if params[:slug].present?
+                Portal.find_by(slug: params[:slug], archived: false)
+              else
+                Portal.find_by(custom_domain: request.host, archived: false)
+              end
   end
 
   def portal_login_url
@@ -122,27 +82,22 @@ module PortalAuthGuard
   end
 
   def portal_redirect_target
-    if request.fullpath.to_s.start_with?('/hc')
-      clean_help_center_path(request.fullpath)
-    elsif target_portal.present?
+    return clean_help_center_path(request.fullpath) if request.fullpath.to_s.start_with?('/hc')
+
+    if target_portal.present?
       locale = target_portal.default_locale.presence || 'en'
-      "/hc/#{target_portal.slug}/#{locale}"
-    else
-      '/hc'
+      return "/hc/#{target_portal.slug}/#{locale}"
     end
+
+    '/hc'
   end
 
   def clean_help_center_path(path)
     normalized = path.to_s
-    return '/hc' unless valid_help_center_path?(normalized)
-
-    normalized
-  end
-
-  def valid_help_center_path?(path)
-    path.start_with?('/hc') &&
-      !path.start_with?('//') &&
-      !path.include?('://') &&
-      !path.include?('\\')
+    valid = normalized.start_with?('/hc') &&
+            !normalized.start_with?('//') &&
+            !normalized.include?('://') &&
+            !normalized.include?('\\')
+    valid ? normalized : '/hc'
   end
 end
