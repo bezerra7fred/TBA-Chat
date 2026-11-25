@@ -28,7 +28,7 @@ jobs:
           echo "gateway_ip=$GATEWAY" >> $GITHUB_OUTPUT
           echo "Using gateway: $GATEWAY"
 
-      - name: Setup Node.js + pnpm (no hardcoded GEM_HOME)
+      - name: Setup Node.js + pnpm
         uses: actions/setup-node@v4
         with:
           node-version: '24.x'
@@ -47,36 +47,38 @@ jobs:
       - name: Install frontend dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Run ESLint (exit code preserved)
-        run: pnpm exec eslint . 2>&1 || exit $?
+      - name: Run ESLint (exact equivalent)
+        run: pnpm run eslint 2>&1 || exit $?
 
-      - name: Run RuboCop (exit code preserved)
+      - name: Run RuboCop parallel (exit code preserved, after bundle install)
         uses: ruby/setup-ruby@v1
         with:
           ruby-version: 3.4.4
           bundler: true
         env:
           GEM_HOME: .bundle/ruby/3.4.0
-      - run: bundle exec rubocop -D 2>&1 || exit $?
+          BUNDLE_GEMFILE: Gemfile
+      - run: bundle exec rubocop --parallel 2>&1 || exit $?
 
-      - name: Run bundle-audit check (exit code preserved)
+      - name: Run bundle-audit update then check (exit code preserved, after bundle install)
         uses: ruby/setup-ruby@v1
         with:
           ruby-version: 3.4.4
           bundler: true
         env:
           GEM_HOME: .bundle/ruby/3.4.0
-      - run: bundle audit check 2>&1 || exit $?
+          BUNDLE_GEMFILE: Gemfile
+      - run: bundle exec bundle-audit update && bundle exec bundle-audit check 2>&1 || exit $?
 
-      - name: Build Vite test assets (coverage mode)
-        run: pnpm exec vite build --mode test 2>&1 || exit $?
+      - name: Build Vite test assets (clear, mode=test)
+        run: bin/vite build --clear --mode=test 2>&1 || exit $?
 
-      - name: Run focused vitest specs with coverage (exit code preserved)
+      - name: Run vitest with coverage (exact equivalent to test:coverage)
         env:
           TZ: UTC
           CI: true
           VITEST_COVERAGE: 'true'
-        run: pnpm exec vitest run --coverage --reporter=verbose 2>&1 || exit $?
+        run: pnpm run test:coverage 2>&1 || exit $?
 
       - name: Bundle install (exit code preserved, GEM_HOME via ruby/setup-ruby)
         uses: ruby/setup-ruby@v1
@@ -105,12 +107,12 @@ jobs:
           # Create DB and schema
           bundle exec rails db:create db:schema:load 2>&1 || exit $?
           # Preflight Redis check via TCP (redis-cli may not be installed in WSL)
-          GATEWAY_TCP=$(echo $GATEWAY | cut -d. -f1-3).255
-          timeout 5 bash -c "echo > /dev/tcp/$GATEWAY_TCP/6379" 2>/dev/null && echo "Redis TCP port open" || echo "Redis TCP port check skipped (redis-cli not available)"
+          # Test direct connection: $GATEWAY:6379
+          timeout 5 bash -c "echo > /dev/tcp/$GATEWAY/6379" 2>/dev/null && echo "Redis TCP port open" || echo "Redis TCP port check skipped (redis-cli not available)"
           # Verify PostgreSQL is reachable via TCP
           timeout 5 bash -c "echo > /dev/tcp/$GATEWAY/5432" 2>/dev/null && echo "PostgreSQL TCP port open" || echo "PostgreSQL TCP port check skipped"
 
-      - name: Run full RSpec backend suite (exit code preserved, isolated env with gateway)
+      - name: Run full RSpec suite (exit code preserved, no duplicate subset)
         env:
           RAILS_ENV: test
           POSTGRES_HOST: ${{ steps.gateway.outputs.gateway_ip }}
@@ -124,15 +126,3 @@ jobs:
 
       - name: Validate rspec specs exist (no shared DB assumed)
         run: test -f spec/controllers/api/v1/accounts_controller_spec.rb && test -f spec/controllers/dashboard_custom_domain_spec.rb || exit $?
-
-      - name: Run rspec subset (exit code preserved, fallback if full suite times out)
-        env:
-          RAILS_ENV: test
-          POSTGRES_HOST: ${{ steps.gateway.outputs.gateway_ip }}
-          POSTGRES_PORT: '5432'
-          POSTGRES_USERNAME: postgres
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DATABASE: test_validator_${{ github.run_id }}
-          REDIS_URL: redis://${{ steps.gateway.outputs.gateway_ip }}:6379/1
-          SECRET_KEY_BASE: localvalidation1234567890abcdef1234567890abcdef
-        run: bundle exec rspec spec/controllers/api/v1/accounts_controller_spec.rb spec/controllers/dashboard_custom_domain_spec.rb --format progress 2>&1 || exit $?
