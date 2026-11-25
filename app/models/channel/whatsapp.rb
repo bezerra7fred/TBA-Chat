@@ -135,6 +135,9 @@ class Channel::Whatsapp < ApplicationRecord
   def send_reaction(contact_number, message, emoji)
     return false unless valid_reaction_target?(contact_number, message)
 
+    phone_number_id = provider_config['phone_number_id']
+    return false if phone_number_id.blank?
+
     url = "https://graph.facebook.com/v18.0/#{phone_number_id}/messages"
     payload = reaction_payload(contact_number, message.source_id, emoji)
     headers = api_headers.merge('Content-Type' => 'application/json')
