@@ -29,16 +29,18 @@ module PortalAuthGuard
   end
 
   def resolve_portal_user
-    return resolve_access_token_portal_user if access_token_authentication_enabled?
-
-    resolve_session_portal_user
+    if access_token_authentication?
+      resolve_access_token_user
+    else
+      resolve_token_user
+    end
   end
 
-  def access_token_authentication_enabled?
+  def access_token_authentication?
     respond_to?(:authenticate_by_access_token?, true) && authenticate_by_access_token?
   end
 
-  def resolve_access_token_portal_user
+  def resolve_access_token_user
     authenticate_access_token!
     return nil if performed?
 
@@ -49,14 +51,11 @@ module PortalAuthGuard
     nil
   end
 
-  def resolve_session_portal_user
+  def resolve_token_user
     set_user_by_token if respond_to?(:set_user_by_token, true)
     return @resource if @resource.is_a?(User)
 
-    return unless respond_to?(:current_user)
-
-    user = current_user
-    user if user.is_a?(User)
+    current_user if respond_to?(:current_user) && current_user.is_a?(User)
   end
 
   def authorize_portal_user!(user)
