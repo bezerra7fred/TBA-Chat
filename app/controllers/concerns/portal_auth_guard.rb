@@ -64,7 +64,7 @@ module PortalAuthGuard
   end
 
   def authorize_portal_user!(user)
-    return if user.is_a?(User) && user.super_admin?
+    return if user.is_a?(SuperAdmin)
 
     portal = target_portal
     return render_portal_response('Not Found', 'Portal not found', :not_found) if portal.blank?
