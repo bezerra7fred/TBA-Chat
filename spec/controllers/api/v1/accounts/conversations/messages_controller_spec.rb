@@ -453,14 +453,22 @@ RSpec.describe 'Conversation Messages API', type: :request do
   end
 
   describe 'message reactions' do
-    let!(:conversation) { create(:conversation, account: account) }
-    let!(:message) { create(:message, conversation: conversation, account: account) }
+    let(:channel) do
+      create(:channel_whatsapp, account: account, provider: 'whatsapp_cloud', sync_templates: false, validate_provider_config: false)
+    end
+    let!(:conversation) { create(:conversation, account: account, inbox: channel.inbox) }
+    let!(:message) { create(:message, conversation: conversation, account: account, source_id: 'wamid.original') }
     let(:agent) { create(:user, account: account, role: :agent) }
     let(:url) do
       "/api/v1/accounts/#{account.id}/conversations/#{conversation.display_id}/messages/#{message.id}/reactions"
     end
 
-    before { create(:inbox_member, inbox: conversation.inbox, user: agent) }
+    before do
+      create(:inbox_member, inbox: conversation.inbox, user: agent)
+      stub_request(:post, "https://graph.facebook.com/v18.0/#{channel.provider_config['phone_number_id']}/messages")
+        .with(body: hash_including(type: 'reaction', reaction: hash_including('message_id' => message.source_id)))
+        .to_return(status: 200)
+    end
 
     it 'requires an authenticated agent to react' do
       post url, params: { emoji: '👍' }, as: :json
@@ -473,6 +481,8 @@ RSpec.describe 'Conversation Messages API', type: :request do
 
       expect(response).to have_http_status(:success)
       expected_reaction = {
+        'actor_id' => agent.id,
+        'actor_type' => 'User',
         'emoji' => '👍',
         'user_id' => agent.id,
         'user_name' => agent.name,
