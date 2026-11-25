@@ -27,64 +27,28 @@ RSpec.describe 'DeviseOverrides::OmniauthCallbacksController', type: :request do
       GlobalConfig.clear_cache
     end
 
-    it 'allows signup' do
+    it 'blocks signup for new users even if OAuth is used' do
       with_modified_env ENABLE_ACCOUNT_SIGNUP: 'true', FRONTEND_URL: 'http://www.example.com' do
         set_omniauth_config('test_not_preset@example.com')
-        allow(AccountBuilder).to receive(:new).and_return(account_builder)
-        allow(account_builder).to receive(:perform).and_return(user_double)
-        allow(Avatar::AvatarFromUrlJob).to receive(:perform_later).and_return(true)
         allow(email_validation_service).to receive(:perform).and_return(true)
 
         get '/omniauth/google_oauth2/callback'
 
-        # expect a 302 redirect to auth/google_oauth2/callback
         expect(response).to redirect_to('http://www.example.com/auth/google_oauth2/callback')
         follow_redirect!
 
-        expect(AccountBuilder).to have_received(:new).with({
-                                                             account_name: 'example',
-                                                             user_full_name: 'test',
-                                                             email: 'test_not_preset@example.com',
-                                                             locale: I18n.locale,
-                                                             confirmed: nil
-                                                           })
-        expect(account_builder).to have_received(:perform)
+        expect(response).to redirect_to(%r{/app/login\?error=no-account-found$})
       end
     end
 
-    it 'blocks personal accounts signup' do
+    it 'blocks personal accounts signup even when account signup is enabled' do
       with_modified_env ENABLE_ACCOUNT_SIGNUP: 'true', FRONTEND_URL: 'http://www.example.com' do
         set_omniauth_config('personal@gmail.com')
-        allow(email_validation_service).to receive(:perform).and_raise(CustomExceptions::Account::InvalidEmail.new({ valid: false, disposable: nil }))
 
         get '/omniauth/google_oauth2/callback'
-
-        # expect a 302 redirect to auth/google_oauth2/callback
-        expect(response).to redirect_to('http://www.example.com/auth/google_oauth2/callback')
         follow_redirect!
 
-        # expect a 302 redirect to app/login with error disallowing personal accounts
-        expect(response).to redirect_to(%r{/app/login\?error=business-account-only$})
-      end
-    end
-
-    it 'blocks personal accounts signup with different Gmail case variations' do
-      with_modified_env ENABLE_ACCOUNT_SIGNUP: 'true', FRONTEND_URL: 'http://www.example.com' do
-        # Test different case variations of Gmail
-        ['personal@Gmail.com', 'personal@GMAIL.com', 'personal@Gmail.COM'].each do |email|
-          set_omniauth_config(email)
-          allow(email_validation_service).to receive(:perform).and_raise(CustomExceptions::Account::InvalidEmail.new({ valid: false,
-                                                                                                                       disposable: nil }))
-
-          get '/omniauth/google_oauth2/callback'
-
-          # expect a 302 redirect to auth/google_oauth2/callback
-          expect(response).to redirect_to('http://www.example.com/auth/google_oauth2/callback')
-          follow_redirect!
-
-          # expect a 302 redirect to app/login with error disallowing personal accounts
-          expect(response).to redirect_to(%r{/app/login\?error=business-account-only$})
-        end
+        expect(response).to redirect_to(%r{/app/login\?error=no-account-found$})
       end
     end
 
@@ -143,24 +107,23 @@ RSpec.describe 'DeviseOverrides::OmniauthCallbacksController', type: :request do
         allow(Avatar::AvatarFromUrlJob).to receive(:perform_later)
       end
 
-      it 'allows a valid installation when public signup is disabled and uses the Shopify service' do
+      it 'blocks a valid installation when public signup is disabled' do
         with_modified_env ENABLE_ACCOUNT_SIGNUP: 'false', FRONTEND_URL: 'http://www.example.com' do
           get '/omniauth/google_oauth2/callback', params: { state: redirect_url }
           follow_redirect!
 
-          expect(Shopify::SignupService).to have_received(:new).with(hash_including(shopify_pending_install_token: pending_token))
-          expect(shopify_signup_service).to have_received(:perform)
-          expect(response).to redirect_to(%r{/app/auth/password/edit\?config=default&reset_password_token=.+})
+          expect(Shopify::SignupService).not_to have_received(:new)
+          expect(response).to redirect_to(%r{/app/login\?error=no-account-found$})
         end
       end
 
-      it 'uses the Shopify service when public signup is enabled too' do
+      it 'blocks Shopify signup when public signup is enabled too' do
         with_modified_env ENABLE_ACCOUNT_SIGNUP: 'true', FRONTEND_URL: 'http://www.example.com' do
           get '/omniauth/google_oauth2/callback', params: { state: redirect_url }
           follow_redirect!
 
-          expect(Shopify::SignupService).to have_received(:new).with(hash_including(shopify_pending_install_token: pending_token))
-          expect(shopify_signup_service).to have_received(:perform)
+          expect(Shopify::SignupService).not_to have_received(:new)
+          expect(response).to redirect_to(%r{/app/login\?error=no-account-found$})
         end
       end
 

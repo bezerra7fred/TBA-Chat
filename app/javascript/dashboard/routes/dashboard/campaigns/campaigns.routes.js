@@ -18,6 +18,7 @@ const campaignsRoutes = {
     {
       path: frontendURL('accounts/:accountId/campaigns'),
       component: CampaignsPageRouteView,
+      meta,
       children: [
         {
           path: '',

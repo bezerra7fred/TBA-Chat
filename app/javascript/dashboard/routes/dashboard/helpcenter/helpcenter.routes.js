@@ -24,7 +24,7 @@ const PortalsSettingsIndexPage = () =>
 
 const meta = {
   featureFlag: FEATURE_FLAGS.HELP_CENTER,
-  permissions: ['administrator', 'agent', 'knowledge_base_manage'],
+  permissions: ['administrator'],
 };
 const portalRoutes = [
   {
@@ -95,7 +95,7 @@ const portalRoutes = [
     name: 'portals_new',
     meta: {
       featureFlag: FEATURE_FLAGS.HELP_CENTER,
-      permissions: ['administrator', 'knowledge_base_manage'],
+      permissions: ['administrator'],
     },
     component: PortalsNew,
   },
@@ -104,7 +104,7 @@ const portalRoutes = [
     name: 'portals_index',
     meta: {
       featureFlag: FEATURE_FLAGS.HELP_CENTER,
-      permissions: ['administrator', 'knowledge_base_manage'],
+      permissions: ['administrator'],
     },
     component: PortalsIndex,
   },
@@ -115,6 +115,7 @@ export default {
     {
       path: getPortalRoute(),
       component: HelpCenterPageRouteView,
+      meta,
       redirect: to => {
         return {
           name: 'portals_index',

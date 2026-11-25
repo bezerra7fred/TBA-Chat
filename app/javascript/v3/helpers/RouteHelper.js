@@ -62,7 +62,6 @@ export const validateRouteAccess = (to, next, chatwootConfig = {}) => {
   // Disable navigation to signup page if signups are disabled
   // Signup route has an attribute (requireSignupEnabled) in it's definition
   const isAnInalidSignupNavigation =
-    !isPendingShopifySignup &&
     chatwootConfig.signupEnabled !== 'true' &&
     to.meta &&
     to.meta.requireSignupEnabled;

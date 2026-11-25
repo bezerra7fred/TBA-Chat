@@ -2,8 +2,10 @@ require 'rails_helper'
 
 RSpec.describe 'Public Categories API', type: :request do
   let!(:account) { create(:account) }
+  let(:agent) { create(:user, account: account, role: :agent) }
+  let(:auth_headers) { agent.create_new_auth_token }
   let!(:portal) do
-    create(:portal, slug: 'test-portal', custom_domain: 'www.example.com', config: { allowed_locales: %w[en es] })
+    create(:portal, account: account, slug: 'test-portal', custom_domain: 'www.example.com', config: { allowed_locales: %w[en es] })
   end
 
   before do
@@ -16,7 +18,7 @@ RSpec.describe 'Public Categories API', type: :request do
     it 'redirects to the locale home page' do
       category = portal.categories.first
 
-      get "/hc/#{portal.slug}/#{category.locale}/categories"
+      get "/hc/#{portal.slug}/#{category.locale}/categories", headers: auth_headers
 
       expect(response).to have_http_status(:moved_permanently)
       expect(response).to redirect_to("/hc/#{portal.slug}/#{category.locale}")
@@ -27,7 +29,7 @@ RSpec.describe 'Public Categories API', type: :request do
     it 'Fetch category with the slug' do
       category = portal.categories.first
 
-      get "/hc/#{portal.slug}/#{category.locale}/categories/#{category.slug}"
+      get "/hc/#{portal.slug}/#{category.locale}/categories/#{category.slug}", headers: auth_headers
 
       expect(response).to have_http_status(:success)
     end
@@ -36,7 +38,7 @@ RSpec.describe 'Public Categories API', type: :request do
       category = portal.categories.first
       translation = create(:category, locale: 'es', portal: portal, associated_category_id: category.id)
 
-      get "/hc/#{portal.slug}/#{category.locale}/categories/#{category.slug}"
+      get "/hc/#{portal.slug}/#{category.locale}/categories/#{category.slug}", headers: auth_headers
 
       expect(response).to have_http_status(:success)
       expect(response.body).to include(%(value="/hc/#{portal.slug}/es/categories/#{translation.slug}"))
@@ -45,7 +47,7 @@ RSpec.describe 'Public Categories API', type: :request do
     it 'links to the locale home when a translated category does not exist' do
       category = portal.categories.first
 
-      get "/hc/#{portal.slug}/#{category.locale}/categories/#{category.slug}"
+      get "/hc/#{portal.slug}/#{category.locale}/categories/#{category.slug}", headers: auth_headers
 
       expect(response).to have_http_status(:success)
       expect(response.body).to include(%(value="/hc/#{portal.slug}/es"))
@@ -57,7 +59,7 @@ RSpec.describe 'Public Categories API', type: :request do
       spanish_category = create(:category, locale: 'es', portal: portal, associated_category_id: category.id)
       french_category = create(:category, locale: 'fr', portal: portal, associated_category_id: category.id)
 
-      get "/hc/#{portal.slug}/fr/categories/#{french_category.slug}"
+      get "/hc/#{portal.slug}/fr/categories/#{french_category.slug}", headers: auth_headers
 
       expect(response).to have_http_status(:success)
       expect(response.body).to include(
@@ -71,7 +73,7 @@ RSpec.describe 'Public Categories API', type: :request do
       translation = create(:category, locale: 'es', portal: portal, associated_category_id: category.id)
       portal.update!(config: portal.config.merge('layout' => 'documentation'))
 
-      get "/hc/#{portal.slug}/#{category.locale}/categories/#{category.slug}"
+      get "/hc/#{portal.slug}/#{category.locale}/categories/#{category.slug}", headers: auth_headers
 
       expect(response.body).to include(%(href="/hc/#{portal.slug}/es/categories/#{translation.slug}"))
     end
@@ -81,7 +83,7 @@ RSpec.describe 'Public Categories API', type: :request do
       foreign_portal = create(:portal, config: { allowed_locales: %w[en es] })
       foreign_category = create(:category, portal: foreign_portal, locale: 'es', associated_category_id: category.id)
 
-      get "/hc/#{portal.slug}/en/categories/#{category.slug}"
+      get "/hc/#{portal.slug}/en/categories/#{category.slug}", headers: auth_headers
 
       expect(response).to have_http_status(:success)
       expect(response.body).to include(%(value="/hc/#{portal.slug}/es"))
@@ -93,7 +95,7 @@ RSpec.describe 'Public Categories API', type: :request do
       article = create(:article, category: category, portal: portal, account_id: account.id)
       article.author.destroy!
 
-      get "/hc/#{portal.slug}/#{category.locale}/categories/#{category.slug}"
+      get "/hc/#{portal.slug}/#{category.locale}/categories/#{category.slug}", headers: auth_headers
 
       expect(response).to have_http_status(:success)
       expect(response.body).not_to include("#{I18n.t('public_portal.common.by')} ")

@@ -109,9 +109,7 @@ class DeviseOverrides::OmniauthCallbacksController < DeviseTokenAuth::OmniauthCa
   end
 
   def account_signup_allowed?
-    return true if GlobalConfigService.account_signup_enabled?
-
-    Shopify::FeatureGate.enabled? && Shopify::PendingInstallation.pending?(token: shopify_pending_install_token)
+    false
   end
 
   def shopify_pending_install_token

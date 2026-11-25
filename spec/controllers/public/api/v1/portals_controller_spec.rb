@@ -3,6 +3,7 @@ require 'rails_helper'
 RSpec.describe Public::Api::V1::PortalsController, type: :request do
   let!(:account) { create(:account) }
   let!(:agent) { create(:user, account: account, role: :agent) }
+  let(:auth_headers) { agent.create_new_auth_token }
   let!(:portal) { create(:portal, slug: 'test-portal', account_id: account.id, custom_domain: 'www.example.com') }
 
   before do
@@ -14,32 +15,27 @@ RSpec.describe Public::Api::V1::PortalsController, type: :request do
 
   describe 'GET /public/api/v1/portals/{portal_slug}' do
     it 'redirects to the portal default locale when locale is not present' do
-      get "/hc/#{portal.slug}"
+      get "/hc/#{portal.slug}", headers: auth_headers
 
       expect(response).to redirect_to("/hc/#{portal.slug}/#{portal.default_locale}")
     end
 
     it 'Show portal and categories belonging to the portal' do
-      get "/hc/#{portal.slug}/en"
+      get "/hc/#{portal.slug}/en", headers: auth_headers
 
       expect(response).to have_http_status(:success)
     end
 
-    it 'does not set the session cookie' do
-      previous = ActionController::Base.allow_forgery_protection
-      ActionController::Base.allow_forgery_protection = true
-
+    it 'redirects unauthenticated visitors to login' do
       get "/hc/#{portal.slug}/en"
 
-      expect(response.headers['Set-Cookie'].to_s).not_to include('_chatwoot_session')
-    ensure
-      ActionController::Base.allow_forgery_protection = previous
+      expect(response).to redirect_to(%r{/app/login\?redirect_url=})
     end
 
     it 'Throws unauthorised error for unknown domain' do
       portal.update(custom_domain: 'www.something.com')
 
-      get "/hc/#{portal.slug}/en"
+      get "/hc/#{portal.slug}/en", headers: auth_headers
 
       expect(response).to have_http_status(:unauthorized)
       json_response = response.parsed_body
@@ -55,7 +51,7 @@ RSpec.describe Public::Api::V1::PortalsController, type: :request do
         portal.logo.attach(io: file, filename: 'sample.png', content_type: 'image/png')
         file.close
 
-        get "/hc/#{portal.slug}/en"
+        get "/hc/#{portal.slug}/en", headers: auth_headers
 
         expect(response).to have_http_status(:success)
         expect(response.body).to include('<link rel="icon" href=')
@@ -67,7 +63,7 @@ RSpec.describe Public::Api::V1::PortalsController, type: :request do
         # Ensure logo is not attached
         portal.logo.purge if portal.logo.attached?
 
-        get "/hc/#{portal.slug}/en"
+        get "/hc/#{portal.slug}/en", headers: auth_headers
 
         expect(response).to have_http_status(:success)
         expect(response.body).not_to include('<link rel="icon" href=')
@@ -77,7 +73,7 @@ RSpec.describe Public::Api::V1::PortalsController, type: :request do
     it 'hides drafted locales from the public locale switcher' do
       portal.update!(config: { allowed_locales: %w[en es], draft_locales: ['es'], default_locale: 'en' })
 
-      get "/hc/#{portal.slug}/en"
+      get "/hc/#{portal.slug}/en", headers: auth_headers
 
       expect(response).to have_http_status(:success)
       expect(response.body).not_to include('value="es"')
@@ -87,7 +83,7 @@ RSpec.describe Public::Api::V1::PortalsController, type: :request do
     it 'allows direct access to drafted locale pages' do
       portal.update!(config: { allowed_locales: %w[en es], draft_locales: ['es'], default_locale: 'en' })
 
-      get "/hc/#{portal.slug}/es"
+      get "/hc/#{portal.slug}/es", headers: auth_headers
 
       expect(response).to have_http_status(:success)
     end
@@ -95,7 +91,7 @@ RSpec.describe Public::Api::V1::PortalsController, type: :request do
     it 'links the header logo to the current locale' do
       portal.update!(config: { allowed_locales: %w[en es], default_locale: 'en' })
 
-      get "/hc/#{portal.slug}/es"
+      get "/hc/#{portal.slug}/es", headers: auth_headers
 
       expect(response.body).to include(%(href="/hc/#{portal.slug}/es"))
       expect(response.body).not_to include(%(href="/hc/#{portal.slug}/en"))
@@ -104,7 +100,7 @@ RSpec.describe Public::Api::V1::PortalsController, type: :request do
     it 'shows the active drafted locale in the switcher state on direct locale access' do
       portal.update!(config: { allowed_locales: %w[en es fr], draft_locales: ['es'], default_locale: 'en' })
 
-      get "/hc/#{portal.slug}/es"
+      get "/hc/#{portal.slug}/es", headers: auth_headers
 
       expect(response).to have_http_status(:success)
 
@@ -141,7 +137,7 @@ RSpec.describe Public::Api::V1::PortalsController, type: :request do
       portal.update!(config: { allowed_locales: %w[en], default_locale: 'en',
                                popular_content: { 'en' => { 'article_ids' => [gamma.id, alpha.id] } } })
 
-      get "/hc/#{portal.slug}/en"
+      get "/hc/#{portal.slug}/en", headers: auth_headers
 
       expect(response).to have_http_status(:success)
       expect(response.body).to include('Recommended articles')
@@ -154,7 +150,7 @@ RSpec.describe Public::Api::V1::PortalsController, type: :request do
       portal.update!(config: { allowed_locales: %w[en es], default_locale: 'en',
                                popular_content: { 'en' => { 'article_ids' => [alpha.id, draft.id, spanish.id] } } })
 
-      get "/hc/#{portal.slug}/en"
+      get "/hc/#{portal.slug}/en", headers: auth_headers
 
       expect(response).to have_http_status(:success)
       expect(response.body).to include('Alpha Guide')
@@ -166,7 +162,7 @@ RSpec.describe Public::Api::V1::PortalsController, type: :request do
       portal.update!(config: { allowed_locales: %w[en es], default_locale: 'en',
                                popular_content: { 'es' => { 'article_ids' => [alpha.id] } } })
 
-      get "/hc/#{portal.slug}/en"
+      get "/hc/#{portal.slug}/en", headers: auth_headers
 
       expect(response).to have_http_status(:success)
       expect(response.body).not_to include('Recommended articles')
@@ -176,7 +172,7 @@ RSpec.describe Public::Api::V1::PortalsController, type: :request do
       portal.update!(config: { allowed_locales: %w[en], default_locale: 'en',
                                popular_content: { 'en' => { 'category_ids' => [category_b.id, category_a.id] } } })
 
-      get "/hc/#{portal.slug}/en"
+      get "/hc/#{portal.slug}/en", headers: auth_headers
 
       expect(response).to have_http_status(:success)
       expect(response.body).to include('recommended-pill')
@@ -187,7 +183,7 @@ RSpec.describe Public::Api::V1::PortalsController, type: :request do
     it 'falls back to featured articles when no recommendations are configured' do
       create_list(:article, 6, account: account, author: agent, portal: portal, locale: 'en', status: :published, category: category_a)
 
-      get "/hc/#{portal.slug}/en"
+      get "/hc/#{portal.slug}/en", headers: auth_headers
 
       expect(response).to have_http_status(:success)
       expect(response.body).to include('Featured Articles')
@@ -198,7 +194,7 @@ RSpec.describe Public::Api::V1::PortalsController, type: :request do
       portal.update!(config: { allowed_locales: %w[en], default_locale: 'en', layout: 'documentation',
                                popular_content: { 'en' => { 'article_ids' => [alpha.id, beta.id] } } })
 
-      get "/hc/#{portal.slug}/en"
+      get "/hc/#{portal.slug}/en", headers: auth_headers
 
       expect(response).to have_http_status(:success)
       expect(response.body).to include('Recommended articles')
@@ -209,7 +205,7 @@ RSpec.describe Public::Api::V1::PortalsController, type: :request do
   describe 'GET /public/api/v1/portals/{portal_slug}/sitemap' do
     context 'when custom_domain is present' do
       it 'returns a valid urlset sitemap with the correct namespace' do
-        get "/hc/#{portal.slug}/sitemap.xml"
+        get "/hc/#{portal.slug}/sitemap.xml", headers: auth_headers
 
         expect(response).to have_http_status(:success)
 
@@ -221,7 +217,7 @@ RSpec.describe Public::Api::V1::PortalsController, type: :request do
       end
 
       it 'contains valid article URLs for the portal' do
-        get "/hc/#{portal.slug}/sitemap.xml"
+        get "/hc/#{portal.slug}/sitemap.xml", headers: auth_headers
 
         expect(response).to have_http_status(:success)
 
