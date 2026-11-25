@@ -452,6 +452,39 @@ RSpec.describe 'Conversation Messages API', type: :request do
     end
   end
 
+  describe 'Evolution API message reactions' do
+    let(:channel) { create(:channel_api, account: account) }
+    let!(:conversation) { create(:conversation, account: account, inbox: channel.inbox) }
+    let!(:message) { create(:message, account: account, conversation: conversation, source_id: 'WAID:wamid.original') }
+    let(:agent) { create(:user, account: account, role: :agent) }
+    let(:url) do
+      "/api/v1/accounts/#{account.id}/conversations/#{conversation.display_id}/messages/#{message.id}/reactions"
+    end
+
+    before do
+      create(:inbox_member, inbox: conversation.inbox, user: agent)
+    end
+
+    it 'queues the Evolution reaction and persists the local reaction' do
+      expect(Whatsapp::EvolutionSendReactionJob).to receive(:perform_later).with(message.id, '👍').and_return(true)
+
+      post url, params: { emoji: '👍' }, headers: agent.create_new_auth_token, as: :json
+
+      expect(response).to have_http_status(:success)
+      expect(message.reload.content_attributes['reactions'].pluck('emoji')).to eq(['👍'])
+    end
+
+    it 'rejects messages without an Evolution source ID' do
+      message.update!(source_id: 'external-source')
+      expect(Whatsapp::EvolutionSendReactionJob).not_to receive(:perform_later)
+
+      post url, params: { emoji: '👍' }, headers: agent.create_new_auth_token, as: :json
+
+      expect(response).to have_http_status(:unprocessable_entity)
+      expect(message.reload.content_attributes['reactions']).to be_nil
+    end
+  end
+
   describe 'message reactions' do
     let(:channel) do
       create(:channel_whatsapp, account: account, provider: 'whatsapp_cloud', sync_templates: false, validate_provider_config: false)

@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref } from 'vue';
+import { computed, onMounted, onUnmounted, ref } from 'vue';
 import { useStore } from 'vuex';
 import { useI18n } from 'vue-i18n';
 import { useAlert } from 'dashboard/composables';
@@ -16,6 +16,7 @@ const quickEmojis = ['👍', '❤️', '😂', '😮', '😢', '🙏', '🔥', '
 const store = useStore();
 const { t } = useI18n();
 const isPickerOpen = ref(false);
+const reactionContainer = ref(null);
 const currentUserId = store.getters.getCurrentUserID;
 
 const groupedReactions = computed(() => {
@@ -47,16 +48,42 @@ const hasReacted = emoji =>
       Number(reaction.userId) === Number(currentUserId)
   );
 
+const closePickerWhenClickedOutside = event => {
+  if (!reactionContainer.value?.contains(event.target)) {
+    isPickerOpen.value = false;
+  }
+};
+
+onMounted(() =>
+  document.addEventListener('click', closePickerWhenClickedOutside)
+);
+onUnmounted(() =>
+  document.removeEventListener('click', closePickerWhenClickedOutside)
+);
+
 const toggleReaction = async emoji => {
   try {
-    await store.dispatch(
-      hasReacted(emoji) ? 'unreactMessage' : 'reactMessage',
-      {
-        conversationId: props.conversationId,
-        messageId: props.messageId,
-        emoji,
+    const payload = {
+      conversationId: props.conversationId,
+      messageId: props.messageId,
+    };
+
+    if (hasReacted(emoji)) {
+      await store.dispatch('unreactMessage', { ...payload, emoji });
+    } else {
+      const currentReaction = Array.isArray(props.reactions)
+        ? props.reactions.find(
+            reaction => Number(reaction.userId) === Number(currentUserId)
+          )
+        : null;
+      if (currentReaction) {
+        await store.dispatch('unreactMessage', {
+          ...payload,
+          emoji: currentReaction.emoji,
+        });
       }
-    );
+      await store.dispatch('reactMessage', { ...payload, emoji });
+    }
     isPickerOpen.value = false;
   } catch {
     useAlert(t('CONVERSATION.REACTIONS.ERROR'));
@@ -65,7 +92,10 @@ const toggleReaction = async emoji => {
 </script>
 
 <template>
-  <div class="relative flex min-h-6 flex-wrap items-center gap-1">
+  <div
+    ref="reactionContainer"
+    class="relative flex min-h-6 flex-wrap items-center gap-1"
+  >
     <button
       v-for="group in groupedReactions"
       :key="group.emoji"

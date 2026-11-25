@@ -35,6 +35,21 @@ class Channel::Api < ApplicationRecord
     'API'
   end
 
+  def supports_reactions?(message)
+    message&.source_id.to_s.start_with?(Whatsapp::EvolutionReactionService::SOURCE_ID_PREFIX)
+  end
+
+  def send_reaction(_contact_source_id, message, emoji)
+    return false unless supports_reactions?(message)
+
+    Whatsapp::EvolutionSendReactionJob.perform_later(message.id, emoji)
+    true
+  end
+
+  def remove_reaction(contact_source_id, message, _emoji)
+    send_reaction(contact_source_id, message, '')
+  end
+
   private
 
   def ensure_valid_agent_reply_time_window

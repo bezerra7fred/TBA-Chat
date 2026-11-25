@@ -63,7 +63,7 @@ class Api::V1::Accounts::Conversations::MessagesController < Api::V1::Accounts::
     @message = message
     channel = @message.conversation.inbox.channel
 
-    unless channel.respond_to?(:send_reaction)
+    unless channel.respond_to?(:send_reaction) && supports_reactions?(channel, @message)
       render json: { error: 'Reactions are not supported on this channel.' }, status: :unprocessable_entity
       return
     end
@@ -87,7 +87,7 @@ class Api::V1::Accounts::Conversations::MessagesController < Api::V1::Accounts::
     @message = message
     channel = @message.conversation.inbox.channel
 
-    unless channel.respond_to?(:remove_reaction)
+    unless channel.respond_to?(:remove_reaction) && supports_reactions?(channel, @message)
       render json: { error: 'Reactions are not supported on this channel.' }, status: :unprocessable_entity
       return
     end
@@ -146,6 +146,10 @@ class Api::V1::Accounts::Conversations::MessagesController < Api::V1::Accounts::
 
     render json: { error: 'Invalid reaction' }, status: :unprocessable_entity
     nil
+  end
+
+  def supports_reactions?(channel, message)
+    !channel.respond_to?(:supports_reactions?) || channel.supports_reactions?(message)
   end
 
   def already_translated_content_available?
