@@ -11,80 +11,90 @@ on:
 jobs:
   setup:
     runs-on: [self-hosted, linux, x64, tba-chat-wsl]
-    defaults:
-      run:
-        working-directory: ./
+    outputs:
+      gem_home: ${{ steps.gem_home.outputs.gem_home }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
           ref: ${{ github.event.inputs.target_branch || 'd099034' }}
 
-      - name: Setup Node.js
+      - name: Setup Node.js + pnpm
         uses: actions/setup-node@v4
         with:
           node-version: '24.x'
           cache: 'pnpm'
+          cache-dependency-path: package-lock.json
 
-      - name: Fix pnpm version
+      - name: Install pnpm via corepack
         run: corepack enable && pnpm --version
+
+      - name: Cache pnpm modules
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.pnpm-store
+          key: pnpm-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Install Ruby + gems
+      - name: Setup Ruby + gems
         uses: ruby/setup-ruby@v1
         with:
           ruby-version: 3.4.4
           bundler: true
         env:
           GEM_HOME: /home/fredav/.rbenv/versions/3.4.4/lib/ruby/gems/3.4.0
+          BUNDLE_GEMFILE: Gemfile
+        id: gem_home
 
       - name: Bundle install (exit code preserved)
+        working-directory: ./
         run: bundle config set --local deployment 'true' && bundle install --jobs 4 --retry 3
+        env:
+          GEM_HOME: /home/fredav/.rbenv/versions/3.4.4/lib/ruby/gems/3.4.0
 
   lint:
     runs-on: [self-hosted, linux, x64, tba-chat-wsl]
-    defaults:
-      run:
-        working-directory: ./
+    needs: setup
     steps:
       - name: Run ESLint (exit code preserved)
+        working-directory: ./
         run: pnpm exec eslint . 2>&1 || exit $?
 
       - name: Run RuboCop (exit code preserved)
+        working-directory: ./
         run: bundle exec rubocop -D 2>&1 || exit $?
 
       - name: Bundle-audit check (exit code preserved)
+        working-directory: ./
         run: bundle audit check 2>&1 || exit $?
 
       - name: Build Vite test assets
+        working-directory: ./
         run: pnpm exec vite build --mode test 2>&1 || exit $?
 
   frontend-tests:
     runs-on: [self-hosted, linux, x64, tba-chat-wsl]
-    defaults:
-      run:
-        working-directory: ./app/javascript
+    needs: setup
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.inputs.target_branch || 'd099034' }}
-
-      - name: Setup Node.js
+      - name: Setup Node.js + pnpm (re-declare for isolated workspace)
         uses: actions/setup-node@v4
         with:
           node-version: '24.x'
           cache: 'pnpm'
+          cache-dependency-path: package-lock.json
 
-      - name: Fix pnpm version
+      - name: Install pnpm via corepack
         run: corepack enable && pnpm --version
 
-      - name: Install dependencies
+      - name: Install dependencies (isolated)
+        working-directory: ./app/javascript
         run: pnpm install --frozen-lockfile
 
       - name: Run focused vitest specs (exit code preserved)
+        working-directory: ./app/javascript
         env:
           TZ: UTC
           CI: true
@@ -92,32 +102,21 @@ jobs:
 
   backend-smoke:
     runs-on: [self-hosted, linux, x64, tba-chat-wsl]
-    defaults:
-      run:
-        working-directory: ./
+    needs: setup
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.inputs.target_branch || 'd099034' }}
-
-      - name: Setup Ruby
-        uses: ruby/setup-ruby@v1
-        with:
-          ruby-version: 3.4.4
-        env:
-          GEM_HOME: /home/fredav/.rbenv/versions/3.4.4/lib/ruby/gems/3.4.0
-      - name: Install gems
-        run: bundle config set --local deployment 'true' && bundle install --jobs 4 --retry 3 2>&1 || exit $?
-      - name: Validate rspec files exist (no services assumed)
+      - name: Validate rspec files exist (no shared DB assumed)
+        working-directory: ./
         run: test -f spec/controllers/api/v1/accounts_controller_spec.rb && test -f spec/controllers/dashboard_custom_domain_spec.rb || exit $?
-      - name: Run rspec subset (exit code preserved)
+
+      - name: Run rspec subset (exit code preserved, isolated env)
+        working-directory: ./
         env:
           RAILS_ENV: test
-          POSTGRES_HOST: localhost
+          POSTGRES_HOST: host.docker.internal
           POSTGRES_PORT: '5432'
           POSTGRES_USERNAME: postgres
           POSTGRES_PASSWORD: postgres
-          REDIS_URL: redis://localhost:6379
+          POSTGRES_DATABASE: test_validator_${{ github.run_id }}
+          REDIS_URL: redis://host.docker.internal:6379
           SECRET_KEY_BASE: localvalidation1234567890abcdef1234567890abcdef
         run: bundle exec rspec spec/controllers/api/v1/accounts_controller_spec.rb spec/controllers/dashboard_custom_domain_spec.rb --format progress 2>&1 || exit $?
