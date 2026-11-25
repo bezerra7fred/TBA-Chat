@@ -9,7 +9,7 @@ on:
         required: false
 
 jobs:
-  lint:
+  setup:
     runs-on: [self-hosted, linux, x64, tba-chat-wsl]
     defaults:
       run:
@@ -26,30 +26,40 @@ jobs:
           node-version: '24.x'
           cache: 'pnpm'
 
+      - name: Fix pnpm version
+        run: corepack enable && pnpm --version
+
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Run ESLint
-        run: pnpm exec eslint . || true
-
-      - name: Run RuboCop
+      - name: Install Ruby + gems
         uses: ruby/setup-ruby@v1
         with:
           ruby-version: 3.4.4
+          bundler: true
         env:
           GEM_HOME: /home/fredav/.rbenv/versions/3.4.4/lib/ruby/gems/3.4.0
-      - run: bundle exec rubocop -D 2>&1 | tail -n 20 || true
 
-      - name: Run bundle-audit check
-        uses: ruby/setup-ruby@v1
-        with:
-          ruby-version: 3.4.4
-        env:
-          GEM_HOME: /home/fredav/.rbenv/versions/3.4.4/lib/ruby/gems/3.4.0
-      - run: bundle audit check --update 2>&1 || true
+      - name: Bundle install (exit code preserved)
+        run: bundle config set --local deployment 'true' && bundle install --jobs 4 --retry 3
+
+  lint:
+    runs-on: [self-hosted, linux, x64, tba-chat-wsl]
+    defaults:
+      run:
+        working-directory: ./
+    steps:
+      - name: Run ESLint (exit code preserved)
+        run: pnpm exec eslint . 2>&1 || exit $?
+
+      - name: Run RuboCop (exit code preserved)
+        run: bundle exec rubocop -D 2>&1 || exit $?
+
+      - name: Bundle-audit check (exit code preserved)
+        run: bundle audit check 2>&1 || exit $?
 
       - name: Build Vite test assets
-        run: pnpm exec vite build --mode test || true
+        run: pnpm exec vite build --mode test 2>&1 || exit $?
 
   frontend-tests:
     runs-on: [self-hosted, linux, x64, tba-chat-wsl]
@@ -68,14 +78,17 @@ jobs:
           node-version: '24.x'
           cache: 'pnpm'
 
+      - name: Fix pnpm version
+        run: corepack enable && pnpm --version
+
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Run focused vitest specs
+      - name: Run focused vitest specs (exit code preserved)
         env:
           TZ: UTC
           CI: true
-        run: pnpm exec vitest run --no-coverage --reporter=verbose 2>&1 | tail -n 30 || true
+        run: pnpm exec vitest run --no-coverage --reporter=verbose 2>&1 || exit $?
 
   backend-smoke:
     runs-on: [self-hosted, linux, x64, tba-chat-wsl]
@@ -95,14 +108,16 @@ jobs:
         env:
           GEM_HOME: /home/fredav/.rbenv/versions/3.4.4/lib/ruby/gems/3.4.0
       - name: Install gems
-        run: bundle config set --local deployment 'true' && bundle install --jobs 4 --retry 3 2>&1 | tail -n 5 || true
-      - name: Run rspec backend subset (2 specs)
+        run: bundle config set --local deployment 'true' && bundle install --jobs 4 --retry 3 2>&1 || exit $?
+      - name: Validate rspec files exist (no services assumed)
+        run: test -f spec/controllers/api/v1/accounts_controller_spec.rb && test -f spec/controllers/dashboard_custom_domain_spec.rb || exit $?
+      - name: Run rspec subset (exit code preserved)
         env:
           RAILS_ENV: test
           POSTGRES_HOST: localhost
-          POSTGRES_PORT: 5432
+          POSTGRES_PORT: '5432'
           POSTGRES_USERNAME: postgres
           POSTGRES_PASSWORD: postgres
           REDIS_URL: redis://localhost:6379
           SECRET_KEY_BASE: localvalidation1234567890abcdef1234567890abcdef
-        run: bundle exec rspec spec/controllers/api/v1/accounts_controller_spec.rb spec/controllers/dashboard_custom_domain_spec.rb --format progress 2>&1 | tail -n 20 || true
+        run: bundle exec rspec spec/controllers/api/v1/accounts_controller_spec.rb spec/controllers/dashboard_custom_domain_spec.rb --format progress 2>&1 || exit $?
