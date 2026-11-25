@@ -10,7 +10,7 @@ import {
   CONVERSATION_PERMISSIONS,
   CONTACT_PERMISSIONS,
   REPORTS_PERMISSIONS,
-" -replace ""} from 'dashboard/constants/permissions.js';
+} from 'dashboard/constants/permissions.js';
 
 export const routeIsAccessibleFor = (route, userPermissions = []) => {
   const { meta: { permissions: routePermissions = [] } = {} } = route;
