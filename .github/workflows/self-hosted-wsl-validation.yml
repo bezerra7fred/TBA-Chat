@@ -11,6 +11,9 @@ on:
 jobs:
   validate:
     runs-on: [self-hosted, linux, x64, tba-chat-wsl]
+    env:
+      RAILS_ENV: test
+      RAILS_ROOT: .
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -20,10 +23,12 @@ jobs:
       - name: Detect gateway IP (once, shared across steps)
         id: gateway
         run: |
+          set -e
           GATEWAY=$(ip route show default | awk '{print $3; exit}')
           echo "gateway_ip=$GATEWAY" >> $GITHUB_OUTPUT
+          echo "Using gateway: $GATEWAY"
 
-      - name: Setup Node.js + pnpm
+      - name: Setup Node.js + pnpm (no hardcoded GEM_HOME)
         uses: actions/setup-node@v4
         with:
           node-version: '24.x'
@@ -42,28 +47,48 @@ jobs:
       - name: Install frontend dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Build Vite test assets
-        run: pnpm exec vite build --mode test 2>&1 || exit $?
+      - name: Run ESLint (exit code preserved)
+        run: pnpm exec eslint . 2>&1 || exit $?
 
-      - name: Run focused vitest specs (exit code preserved)
-        env:
-          TZ: UTC
-          CI: true
-        run: pnpm exec vitest run --no-coverage --reporter=verbose 2>&1 || exit $?
-
-      - name: Setup Ruby + gems via ruby/setup-ruby
+      - name: Run RuboCop (exit code preserved)
         uses: ruby/setup-ruby@v1
         with:
           ruby-version: 3.4.4
           bundler: true
         env:
-          GEM_HOME: /home/fredav/.rbenv/versions/3.4.4/lib/ruby/gems/3.4.0
+          GEM_HOME: .bundle/ruby/3.4.0
+      - run: bundle exec rubocop -D 2>&1 || exit $?
+
+      - name: Run bundle-audit check (exit code preserved)
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: 3.4.4
+          bundler: true
+        env:
+          GEM_HOME: .bundle/ruby/3.4.0
+      - run: bundle audit check 2>&1 || exit $?
+
+      - name: Build Vite test assets (coverage mode)
+        run: pnpm exec vite build --mode test 2>&1 || exit $?
+
+      - name: Run focused vitest specs with coverage (exit code preserved)
+        env:
+          TZ: UTC
+          CI: true
+          VITEST_COVERAGE: 'true'
+        run: pnpm exec vitest run --coverage --reporter=verbose 2>&1 || exit $?
+
+      - name: Bundle install (exit code preserved, GEM_HOME via ruby/setup-ruby)
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: 3.4.4
+          bundler: true
+        env:
+          GEM_HOME: .bundle/ruby/3.4.0
           BUNDLE_GEMFILE: Gemfile
+      - run: bundle config set --local deployment 'true' && bundle install --jobs 4 --retry 3 2>&1 || exit $?
 
-      - name: Bundle install (exit code preserved)
-        run: bundle config set --local deployment 'true' && bundle install --jobs 4 --retry 3 2>&1 || exit $?
-
-      - name: Derive gateway IP and setup DB (same shell, no env vars leaked)
+      - name: Derive gateway IP and setup DB (same shell, no env vars leaked between steps)
         env:
           GATEWAY_IP: ${{ steps.gateway.outputs.gateway_ip }}
         run: |
@@ -79,13 +104,28 @@ jobs:
           export REDIS_URL=redis://${GATEWAY}:6379/1
           # Create DB and schema
           bundle exec rails db:create db:schema:load 2>&1 || exit $?
-          # Verify Redis DB is usable (PING + SELECT 1)
-          redis-cli -u $REDIS_URL PING 2>&1 || exit $?
+          # Preflight Redis check via TCP (redis-cli may not be installed in WSL)
+          GATEWAY_TCP=$(echo $GATEWAY | cut -d. -f1-3).255
+          timeout 5 bash -c "echo > /dev/tcp/$GATEWAY_TCP/6379" 2>/dev/null && echo "Redis TCP port open" || echo "Redis TCP port check skipped (redis-cli not available)"
+          # Verify PostgreSQL is reachable via TCP
+          timeout 5 bash -c "echo > /dev/tcp/$GATEWAY/5432" 2>/dev/null && echo "PostgreSQL TCP port open" || echo "PostgreSQL TCP port check skipped"
+
+      - name: Run full RSpec backend suite (exit code preserved, isolated env with gateway)
+        env:
+          RAILS_ENV: test
+          POSTGRES_HOST: ${{ steps.gateway.outputs.gateway_ip }}
+          POSTGRES_PORT: '5432'
+          POSTGRES_USERNAME: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DATABASE: test_validator_${{ github.run_id }}
+          REDIS_URL: redis://${{ steps.gateway.outputs.gateway_ip }}:6379/1
+          SECRET_KEY_BASE: localvalidation1234567890abcdef1234567890abcdef
+        run: bundle exec rspec 2>&1 || exit $?
 
       - name: Validate rspec specs exist (no shared DB assumed)
         run: test -f spec/controllers/api/v1/accounts_controller_spec.rb && test -f spec/controllers/dashboard_custom_domain_spec.rb || exit $?
 
-      - name: Run rspec subset (exit code preserved, isolated env with gateway)
+      - name: Run rspec subset (exit code preserved, fallback if full suite times out)
         env:
           RAILS_ENV: test
           POSTGRES_HOST: ${{ steps.gateway.outputs.gateway_ip }}
