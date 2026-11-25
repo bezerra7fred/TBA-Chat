@@ -31,9 +31,8 @@ describe 'GET / on a help center custom domain', type: :request do
     end
 
     it 'renders the documentation home in place for authenticated members' do
-      sign_in agent
       host! portal.custom_domain
-      get '/'
+      get '/', headers: agent.create_new_auth_token
 
       expect(response).to have_http_status(:success)
       expect(response.body).to include('sidebar-drawer-checkbox')
@@ -55,9 +54,8 @@ describe 'GET / on a help center custom domain', type: :request do
     end
 
     it 'renders the classic home without the documentation layout for authenticated members' do
-      sign_in agent
       host! portal.custom_domain
-      get '/'
+      get '/', headers: agent.create_new_auth_token
 
       expect(response).to have_http_status(:success)
       expect(response.body).not_to include('sidebar-drawer-checkbox')
