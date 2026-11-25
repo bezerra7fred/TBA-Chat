@@ -162,11 +162,9 @@ class Webhooks::InstagramEventsJob < MutexApplicationJob
   end
 
   def find_conversation_for_reaction(messaging, channel)
-    begin
-      channel.conversations.find_by(source_id: messaging.dig(:sender, :id))
-    rescue StandardError
-      nil
-    end
+    channel.conversations.find_by(source_id: messaging.dig(:sender, :id))
+  rescue StandardError
+    nil
   end
 
   def find_contact_for_reaction(messaging, channel)
