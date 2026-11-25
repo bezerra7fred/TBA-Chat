@@ -86,7 +86,7 @@ RSpec.describe 'Search indexing', type: :request do
     let(:portal) { create(:portal, account: web_widget.account, channel_web_widget: web_widget, custom_domain: 'help.example.com') }
 
     %w[classic documentation].each do |layout|
-      it "allows indexing of the custom-domain homepage with the #{layout} layout and an embedded widget" do
+      it "requires login for the custom-domain homepage with the #{layout} layout and an embedded widget" do
         portal.update!(config: { allowed_locales: ['en'], default_locale: 'en', layout: layout })
 
         with_modified_env FRONTEND_URL: 'https://app.example.com' do
@@ -94,9 +94,8 @@ RSpec.describe 'Search indexing', type: :request do
           get '/'
         end
 
-        expect(response).to have_http_status(:ok)
-        expect(robots_directives).not_to include('noindex')
-        expect(response.headers['X-Robots-Tag']).to be_nil
+        query = { redirect_url: "/hc/#{portal.slug}/en" }.to_query
+        expect(response).to redirect_to("https://app.example.com/app/login?#{query}")
       end
     end
   end

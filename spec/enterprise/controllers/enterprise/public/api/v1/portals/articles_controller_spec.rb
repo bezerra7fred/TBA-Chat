@@ -3,6 +3,9 @@ require 'rails_helper'
 RSpec.describe 'Public Articles API', type: :request do
   let!(:portal) { create(:portal, slug: 'test-portal', config: { allowed_locales: %w[en es] }, custom_domain: 'www.example.com') }
 
+  let(:agent) { create(:user, account: portal.account, role: :agent) }
+  let(:auth_headers) { agent.create_new_auth_token }
+
   describe 'GET /public/api/v1/portals/:slug/articles' do
     before do
       allow(ChatwootApp).to receive(:chatwoot_cloud?).and_return(true)
@@ -12,7 +15,7 @@ RSpec.describe 'Public Articles API', type: :request do
     context 'with help_center_embedding_search feature' do
       it 'get all articles with searched text query using vector search if enabled' do
         allow(Article).to receive(:vector_search).and_return(Article.none)
-        get "/hc/#{portal.slug}/en/articles.json", params: { query: 'funny' }
+        get "/hc/#{portal.slug}/en/articles.json", params: { query: 'funny' }, headers: auth_headers
         expect(response).to have_http_status(:ok)
         expect(Article).to have_received(:vector_search)
       end
@@ -20,7 +23,7 @@ RSpec.describe 'Public Articles API', type: :request do
       it 'does not use vector search for whitespace-only queries' do
         allow(Article).to receive(:vector_search).and_return(Article.none)
 
-        get "/hc/#{portal.slug}/en/articles.json", params: { query: '   ' }
+        get "/hc/#{portal.slug}/en/articles.json", params: { query: '   ' }, headers: auth_headers
 
         expect(response).to have_http_status(:ok)
         expect(Article).not_to have_received(:vector_search)

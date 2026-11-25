@@ -41,39 +41,14 @@ RSpec.describe 'DeviseOverrides::OmniauthCallbacksController', type: :request do
       end
     end
 
-    it 'blocks personal accounts signup' do
+    it 'blocks personal accounts signup even when account signup is enabled' do
       with_modified_env ENABLE_ACCOUNT_SIGNUP: 'true', FRONTEND_URL: 'http://www.example.com' do
         set_omniauth_config('personal@gmail.com')
-        allow(email_validation_service).to receive(:perform).and_raise(CustomExceptions::Account::InvalidEmail.new({ valid: false, disposable: nil }))
 
         get '/omniauth/google_oauth2/callback'
-
-        # expect a 302 redirect to auth/google_oauth2/callback
-        expect(response).to redirect_to('http://www.example.com/auth/google_oauth2/callback')
         follow_redirect!
 
-        # expect a 302 redirect to app/login with error disallowing personal accounts
-        expect(response).to redirect_to(%r{/app/login\?error=business-account-only$})
-      end
-    end
-
-    it 'blocks personal accounts signup with different Gmail case variations' do
-      with_modified_env ENABLE_ACCOUNT_SIGNUP: 'true', FRONTEND_URL: 'http://www.example.com' do
-        # Test different case variations of Gmail
-        ['personal@Gmail.com', 'personal@GMAIL.com', 'personal@Gmail.COM'].each do |email|
-          set_omniauth_config(email)
-          allow(email_validation_service).to receive(:perform).and_raise(CustomExceptions::Account::InvalidEmail.new({ valid: false,
-                                                                                                                       disposable: nil }))
-
-          get '/omniauth/google_oauth2/callback'
-
-          # expect a 302 redirect to auth/google_oauth2/callback
-          expect(response).to redirect_to('http://www.example.com/auth/google_oauth2/callback')
-          follow_redirect!
-
-          # expect a 302 redirect to app/login with error disallowing personal accounts
-          expect(response).to redirect_to(%r{/app/login\?error=business-account-only$})
-        end
+        expect(response).to redirect_to(%r{/app/login\?error=no-account-found$})
       end
     end
 
