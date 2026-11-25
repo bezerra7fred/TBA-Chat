@@ -466,7 +466,7 @@ RSpec.describe 'Conversation Messages API', type: :request do
     before do
       create(:inbox_member, inbox: conversation.inbox, user: agent)
       stub_request(:post, "https://graph.facebook.com/v18.0/#{channel.provider_config['phone_number_id']}/messages")
-        .with(body: hash_including(type: 'reaction', reaction: hash_including(message_id: message.source_id)))
+        .with(body: hash_including(type: 'reaction', reaction: hash_including('message_id' => message.source_id)))
         .to_return(status: 200)
     end
 
@@ -481,6 +481,8 @@ RSpec.describe 'Conversation Messages API', type: :request do
 
       expect(response).to have_http_status(:success)
       expected_reaction = {
+        'actor_id' => agent.id,
+        'actor_type' => 'User',
         'emoji' => '👍',
         'user_id' => agent.id,
         'user_name' => agent.name,
