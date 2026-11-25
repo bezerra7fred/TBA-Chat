@@ -9,6 +9,9 @@ module PortalAuthGuard
 
   private
 
+  def resource_name
+    :user
+  end
   def authenticate_portal_user!
     user = resolve_portal_user
     return if performed?
