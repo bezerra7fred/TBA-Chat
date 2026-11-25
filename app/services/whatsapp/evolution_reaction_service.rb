@@ -4,7 +4,7 @@ require 'uri'
 
 class Whatsapp::EvolutionReactionService
   ALLOWED_KEY_FIELDS = %w[id remoteJid fromMe participant remoteJidAlt addressingMode].freeze
-  SOURCE_ID_PREFIX = 'WAID:'
+  SOURCE_ID_PREFIX = 'WAID:'.freeze
   OPEN_TIMEOUT = 5
   READ_TIMEOUT = 10
 

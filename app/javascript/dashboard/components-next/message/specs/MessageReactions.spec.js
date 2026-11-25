@@ -115,7 +115,9 @@ describe('MessageReactions', () => {
     await wrapper
       .get('button[aria-label="CONVERSATION.REACTIONS.ADD"]')
       .trigger('click');
-    const replacementButton = wrapper.findAll('.absolute.bottom-full button')[2];
+    const replacementButton = wrapper.findAll(
+      '.absolute.bottom-full button'
+    )[2];
     const replacementEmoji = replacementButton.text();
 
     await replacementButton.trigger('click');
