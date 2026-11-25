@@ -4,11 +4,55 @@ on:
   workflow_dispatch:
     inputs:
       target_branch:
-        description: 'Branch to validate (default: head of reactions-validation-2)'
+        description: 'Branch to validate (default: ac33c0e - PR #8 customizations)'
         default: 'ac33c0e'
         required: false
 
 jobs:
+  lint:
+    runs-on: [self-hosted, linux, x64, tba-chat-wsl]
+    defaults:
+      run:
+        working-directory: ./
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.target_branch || 'ac33c0e' }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '26.x'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run ESLint
+        run: pnpm exec eslint .
+
+      - name: Run RuboCop
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: 3.4.4
+          bundler: true
+        env:
+          GEM_HOME: /home/fredav/.rbenv/versions/3.4.4/lib/ruby/gems/3.4.0
+      - run: bundle exec rubocop -D --format simple 2>&1 | tail -20
+
+      - name: Run bundle-audit
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: 3.4.4
+          bundler: true
+        env:
+          GEM_HOME: /home/fredav/.rbenv/versions/3.4.4/lib/ruby/gems/3.4.0
+      - run: bundle audit check 2>&1
+
+      - name: Build Vite test assets
+        run: pnpm exec vite build
+
   frontend-tests:
     runs-on: [self-hosted, linux, x64, tba-chat-wsl]
     defaults:
@@ -29,14 +73,17 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Run vitest frontend tests
-        run: TZ=UTC npx vitest run --no-coverage
+      - name: Run focused vitest specs
+        env:
+          TZ: UTC
+          CI: true
+        run: pnpm exec vitest run --no-coverage --reporter=verbose
 
   backend-smoke:
     runs-on: [self-hosted, linux, x64, tba-chat-wsl]
     defaults:
       run:
-        working-directory: .
+        working-directory: ./
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -48,11 +95,24 @@ jobs:
         with:
           ruby-version: 3.4.4
           bundler: true
-
+        env:
+          GEM_HOME: /home/fredav/.rbenv/versions/3.4.4/lib/ruby/gems/3.4.0
       - name: Install gems
         run: bundle config set --local deployment 'true' && bundle install --jobs 4 --retry 3
-
-      - name: Run database setup
+      - name: Docker Compose services up (Postgres + Redis)
+        run: docker compose -f docker-compose.test.yml up -d
+        timeout-minutes: 60
+      - name: Wait for DB services
+        run: |
+          for i in {1..10}; do
+            if pg_isready -h 127.0.0.1 -p 5432 && redis-cli ping > /dev/null 2>&1; then
+              echo "Services ready"
+              break
+            fi
+            echo "Waiting... $i"
+            sleep 5
+          done
+      - name: Run rspec backend subset
         env:
           RAILS_ENV: test
           POSTGRES_HOST: 127.0.0.1
@@ -60,16 +120,8 @@ jobs:
           POSTGRES_USERNAME: postgres
           POSTGRES_PASSWORD: postgres
           REDIS_URL: redis://127.0.0.1:6379
-          SECRET_KEY_BASE: localvalidation123
-        run: bundle exec rails db:create db:schema:load 2>&1 | tail -5
-
-      - name: Run rspec backend tests (subset)
-        env:
-          RAILS_ENV: test
-          POSTGRES_HOST: 127.0.0.1
-          POSTGRES_PORT: 5432
-          POSTGRES_USERNAME: postgres
-          POSTGRES_PASSWORD: postgres
-          REDIS_URL: redis://127.0.0.1:6379
-          SECRET_KEY_BASE: localvalidation123
+          SECRET_KEY_BASE: localvalidation1234567890abcdef1234567890abcdef
         run: bundle exec rspec spec/controllers/api/v1/accounts_controller_spec.rb spec/controllers/dashboard_custom_domain_spec.rb --format progress 2>&1 | tail -20
+      - name: Docker Compose services down
+        if: always()
+        run: docker compose -f docker-compose.test.yml down
