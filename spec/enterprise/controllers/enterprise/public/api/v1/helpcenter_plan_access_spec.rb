@@ -4,6 +4,7 @@ RSpec.describe 'Public Help Center Access', type: :request do
   let(:plan_name) { 'Startups' }
   let!(:account) { create(:account, custom_attributes: { 'plan_name' => plan_name }) }
   let!(:agent) { create(:user, account: account, role: :agent) }
+  let(:auth_headers) { agent.create_new_auth_token }
   let!(:portal) { create(:portal, account: account, custom_domain: 'docs-helpcenter.example.com') }
   let!(:category) { create(:category, portal: portal, account: account, locale: 'en', slug: 'category-slug') }
   let!(:article) { create(:article, category: category, portal: portal, account: account, author: agent, status: :published) }
@@ -25,7 +26,7 @@ RSpec.describe 'Public Help Center Access', type: :request do
     account.disable_features!(:help_center)
     host! 'help.chatwoot.com'
 
-    get "/hc/#{portal.slug}/en"
+    get "/hc/#{portal.slug}/en", headers: auth_headers
 
     expect(response).to have_http_status(:payment_required)
     expect(response.body).to include('Help Center Unavailable')
@@ -38,7 +39,7 @@ RSpec.describe 'Public Help Center Access', type: :request do
       account.enable_features!(:help_center)
       host! portal.custom_domain
 
-      get "/hc/#{portal.slug}/articles/#{article.slug}"
+      get "/hc/#{portal.slug}/articles/#{article.slug}", headers: auth_headers
 
       expect(response).to have_http_status(:ok)
     end
