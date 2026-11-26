@@ -71,4 +71,3 @@ describe 'GET / on a help center custom domain', type: :request do
     end
   end
 end
-
