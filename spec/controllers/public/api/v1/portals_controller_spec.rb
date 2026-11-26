@@ -276,4 +276,3 @@ RSpec.describe Public::Api::V1::PortalsController, type: :request do
     end
   end
 end
-
