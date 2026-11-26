@@ -69,4 +69,3 @@ class PersonalOutlook::MailboxService
     }
   end
 end
-
