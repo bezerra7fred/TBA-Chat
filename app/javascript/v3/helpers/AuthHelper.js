@@ -115,6 +115,16 @@ export const getCredentialsFromEmail = email => {
   };
 };
 
+export const isSafeHelpCenterRedirect = url => {
+  if (typeof url !== 'string') return false;
+  return (
+    (url === '/hc' || url.startsWith('/hc/')) &&
+    !url.startsWith('//') &&
+    !url.includes('://') &&
+    !url.includes('\\')
+  );
+};
+
 export const getLoginRedirectURL = ({
   ssoAccountId,
   ssoConversationId,
@@ -126,6 +136,9 @@ export const getLoginRedirectURL = ({
     return DEFAULT_REDIRECT_URL;
   }
   if (redirectUrl) {
+    if (isSafeHelpCenterRedirect(redirectUrl)) {
+      return redirectUrl;
+    }
     const { accounts = [] } = user || {};
     const redirectAccount = isShopifyInstallRedirect(redirectUrl)
       ? getShopifyInstallAccount({ accounts, accountId: ssoAccountId })

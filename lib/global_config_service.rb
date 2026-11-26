@@ -16,6 +16,8 @@ class GlobalConfigService
   end
 
   def self.account_signup_enabled?
-    load('ENABLE_ACCOUNT_SIGNUP', 'false').to_s != 'false'
+    ENV.fetch('ENABLE_ACCOUNT_SIGNUP', 'false').in?(%w[true api_only]) || InstallationConfig.find_by(name: 'ACCOUNT_SIGNUP_ENABLED')&.value == true
+  rescue StandardError
+    false
   end
 end

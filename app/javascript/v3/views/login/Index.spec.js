@@ -60,7 +60,7 @@ describe('SAML login', () => {
 });
 
 describe('Shopify signup and password recovery', () => {
-  it('shows signup for a pending Shopify installation when public signup is disabled', () => {
+  it('does not show signup for a pending Shopify installation when public signup is disabled', () => {
     window.chatwootConfig = { signupEnabled: 'false' };
 
     expect(
@@ -70,7 +70,7 @@ describe('Shopify signup and password recovery', () => {
           query: { shopify_pending_install: 'pending-token' },
         },
       })
-    ).toBe(true);
+    ).toBe(false);
   });
 
   it('carries the Shopify billing redirect to password recovery', () => {

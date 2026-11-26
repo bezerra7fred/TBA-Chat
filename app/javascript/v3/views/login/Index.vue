@@ -112,10 +112,7 @@ export default {
       );
     },
     showSignupLink() {
-      return (
-        window.chatwootConfig.signupEnabled === 'true' ||
-        Boolean(this.signupRoute.query?.shopify_pending_install)
-      );
+      return window.chatwootConfig.signupEnabled === 'true';
     },
     signupRoute() {
       return getSignupRoute(this.redirectUrl);

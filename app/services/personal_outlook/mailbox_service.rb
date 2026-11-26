@@ -31,7 +31,7 @@ class PersonalOutlook::MailboxService
   end
 
   def access_token
-    return @access_token if @connection.expires_at > 5.minutes.from_now
+    return @access_token if @access_token.present? && @connection.expires_at > 5.minutes.from_now
 
     client = OAuth2::Client.new(
       GlobalConfigService.load('AZURE_APP_ID', nil),
@@ -41,8 +41,11 @@ class PersonalOutlook::MailboxService
       token_url: 'https://login.microsoftonline.com/common/oauth2/v2.0/token'
     )
     token = OAuth2::AccessToken.new(client, nil, refresh_token: @connection.refresh_token).refresh!
-    @connection.update!(refresh_token: token.refresh_token, expires_at: Time.zone.at(token.expires_at))
-    token.token
+    @connection.update!(
+      refresh_token: token.refresh_token.presence || @connection.refresh_token,
+      expires_at: Time.zone.at(token.expires_at)
+    )
+    @access_token = token.token
   end
 
   def sent_mailbox(imap)
