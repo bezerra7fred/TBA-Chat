@@ -38,6 +38,15 @@ describe 'GET / on a help center custom domain', type: :request do
       expect(response.body).to include('sidebar-drawer-checkbox')
       expect(response.body).to include('Getting Started')
     end
+
+    it 'forbids an authenticated user from another account' do
+      other_account_user = create(:user, account: create(:account), role: :agent)
+      host! portal.custom_domain
+
+      get '/', headers: other_account_user.create_new_auth_token
+
+      expect(response).to have_http_status(:forbidden)
+    end
   end
 
   context 'when the portal uses the classic layout' do
@@ -62,3 +71,4 @@ describe 'GET / on a help center custom domain', type: :request do
     end
   end
 end
+

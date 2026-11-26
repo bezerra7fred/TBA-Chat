@@ -32,6 +32,45 @@ RSpec.describe Public::Api::V1::PortalsController, type: :request do
       expect(response).to redirect_to(%r{/app/login\?redirect_url=})
     end
 
+    it 'returns unauthorized for unauthenticated API requests' do
+      get "/hc/#{portal.slug}/en", headers: { 'Accept' => 'application/json' }
+
+      expect(response).to have_http_status(:unauthorized)
+      expect(response.parsed_body['error']).to eq('You need to sign in before continuing.')
+    end
+
+    it 'rejects an authenticated user from another account' do
+      other_account_user = create(:user, account: create(:account), role: :agent)
+
+      get "/hc/#{portal.slug}/en", headers: other_account_user.create_new_auth_token
+
+      expect(response).to have_http_status(:forbidden)
+    end
+
+    it 'rejects an invalid API access token' do
+      get "/hc/#{portal.slug}/en", headers: { api_access_token: 'invalid' }, as: :json
+
+      expect(response).to have_http_status(:unauthorized)
+      expect(response.parsed_body['error']).to eq('Invalid Access Token')
+    end
+
+    it 'does not allow an AgentBot access token to view the portal' do
+      agent_bot = create(:agent_bot, account: account)
+
+      get "/hc/#{portal.slug}/en", headers: { api_access_token: agent_bot.access_token.token }, as: :json
+
+      expect(response).to have_http_status(:unauthorized)
+      expect(response.parsed_body['error']).to eq('Access to this portal is not authorized for bots')
+    end
+
+    it 'returns not found for an archived portal' do
+      portal.update!(archived: true)
+
+      get "/hc/#{portal.slug}/en", headers: auth_headers
+
+      expect(response).to have_http_status(:not_found)
+    end
+
     it 'Throws unauthorised error for unknown domain' do
       portal.update(custom_domain: 'www.something.com')
 
@@ -237,3 +276,4 @@ RSpec.describe Public::Api::V1::PortalsController, type: :request do
     end
   end
 end
+
