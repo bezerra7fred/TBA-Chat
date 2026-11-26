@@ -112,7 +112,7 @@ export default {
       );
     },
     showSignupLink() {
-      return false;
+      return window.chatwootConfig.signupEnabled === 'true';
     },
     signupRoute() {
       return getSignupRoute(this.redirectUrl);
